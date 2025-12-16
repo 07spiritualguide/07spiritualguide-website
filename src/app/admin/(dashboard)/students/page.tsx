@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Input, Card, CardBody, CardHeader, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner } from '@heroui/react';
+import { Button, Input, Card, CardBody, CardHeader, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner, Checkbox } from '@heroui/react';
 import { supabase } from '@/lib/supabase';
 import { generatePassword, hashPassword } from '@/lib/auth';
 
@@ -18,11 +18,14 @@ interface NewStudentCredentials {
     name: string;
     phone: string;
     password: string;
+    smsSent: boolean;
+    smsError?: string;
 }
 
 export default function ManageStudentsPage() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [sendSms, setSendSms] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [students, setStudents] = useState<Student[]>([]);
@@ -46,6 +49,26 @@ export default function ManageStudentsPage() {
             setStudents(data || []);
         }
         setLoadingStudents(false);
+    };
+
+    const sendCredentialsSms = async (studentPhone: string, studentName: string, password: string) => {
+        try {
+            const message = `Welcome to Spiritual Guide! Your login credentials:\nPhone: ${studentPhone}\nPassword: ${password}`;
+
+            const response = await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: studentPhone,
+                    message: message,
+                }),
+            });
+
+            const data = await response.json();
+            return { success: response.ok, error: data.error };
+        } catch (error) {
+            return { success: false, error: 'Failed to send SMS' };
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -85,7 +108,17 @@ export default function ManageStudentsPage() {
                 return;
             }
 
-            setNewCredentials({ name, phone, password });
+            // Send SMS if checkbox is checked
+            let smsSent = false;
+            let smsError: string | undefined;
+
+            if (sendSms) {
+                const smsResult = await sendCredentialsSms(phone, name, password);
+                smsSent = smsResult.success;
+                smsError = smsResult.error;
+            }
+
+            setNewCredentials({ name, phone, password, smsSent, smsError });
             setName('');
             setPhone('');
             fetchStudents();
@@ -141,11 +174,17 @@ export default function ManageStudentsPage() {
                                 <Input
                                     type="tel"
                                     label="Phone Number"
-                                    placeholder="Enter phone number"
+                                    placeholder="Enter phone number (10 digits)"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     isRequired
                                 />
+                                <Checkbox
+                                    isSelected={sendSms}
+                                    onValueChange={setSendSms}
+                                >
+                                    Send credentials via SMS (₹5)
+                                </Checkbox>
                                 {error && (
                                     <div className="text-danger text-sm p-2 bg-danger-50 rounded-lg">
                                         {error}
@@ -170,7 +209,22 @@ export default function ManageStudentsPage() {
                                 <h2 className="text-xl font-semibold text-success">Student Created!</h2>
                             </CardHeader>
                             <CardBody className="p-6">
-                                <p className="text-default-500 mb-4">Share these credentials with the student:</p>
+                                {/* SMS Status */}
+                                {sendSms && (
+                                    <div className={`mb-4 p-3 rounded-lg ${newCredentials.smsSent ? 'bg-success-50' : 'bg-danger-50'}`}>
+                                        {newCredentials.smsSent ? (
+                                            <p className="text-success text-sm">✅ Credentials sent via SMS!</p>
+                                        ) : (
+                                            <p className="text-danger text-sm">❌ SMS failed: {newCredentials.smsError}</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                <p className="text-default-500 mb-4">
+                                    {newCredentials.smsSent
+                                        ? 'Credentials have been sent to the student:'
+                                        : 'Share these credentials with the student:'}
+                                </p>
 
                                 <div className="space-y-4">
                                     <div className="bg-default-100 rounded-lg p-4">
