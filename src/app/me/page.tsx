@@ -6,6 +6,7 @@ import { Card, CardBody, Spinner, Tabs, Tab, Chip, Button, Table, TableHeader, T
 import { supabase } from '@/lib/supabase';
 import { getStudentSession, StudentSession } from '@/lib/auth';
 import { calculateMahadasha, expandTimeline, MahadashaEntry } from '@/lib/mahadasha';
+import { calculateAntardasha, AntardashaEntry } from '@/lib/antardasha';
 import StudentNavbar from '@/components/StudentNavbar';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -34,8 +35,10 @@ export default function MePage() {
     const [profile, setProfile] = useState<StudentProfile | null>(null);
     const [basicInfo, setBasicInfo] = useState<BasicInfo | null>(null);
     const [mahadashaTimeline, setMahadashaTimeline] = useState<MahadashaEntry[] | null>(null);
+    const [antardashaTimeline, setAntardashaTimeline] = useState<AntardashaEntry[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [calculatingMahadasha, setCalculatingMahadasha] = useState(false);
+    const [calculatingAntardasha, setCalculatingAntardasha] = useState(false);
     const [selectedTab, setSelectedTab] = useState('basic');
 
     const currentYear = new Date().getFullYear();
@@ -90,6 +93,17 @@ export default function MePage() {
 
         if (mahadasha?.timeline) {
             setMahadashaTimeline(mahadasha.timeline as MahadashaEntry[]);
+        }
+
+        // Fetch antardasha data
+        const { data: antardasha } = await supabase
+            .from('antardasha')
+            .select('timeline')
+            .eq('student_id', studentSession.id)
+            .maybeSingle();
+
+        if (antardasha?.timeline) {
+            setAntardashaTimeline(antardasha.timeline as AntardashaEntry[]);
         }
 
         setLoading(false);
@@ -203,6 +217,115 @@ export default function MePage() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `mahadasha_${profile.full_name.replace(/\s+/g, '_')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // Antardasha functions
+    const handleCalculateAntardasha = async () => {
+        if (!profile || !session) return;
+
+        setCalculatingAntardasha(true);
+
+        try {
+            const dob = new Date(profile.date_of_birth);
+            const birthDay = dob.getDate();
+            const birthMonth = dob.getMonth() + 1;
+            const birthYear = dob.getFullYear();
+
+            const timeline = calculateAntardasha(birthDay, birthMonth, birthYear, 100);
+
+            // Check if record exists
+            const { data: existing } = await supabase
+                .from('antardasha')
+                .select('id')
+                .eq('student_id', session.id)
+                .maybeSingle();
+
+            let error;
+            if (existing) {
+                const result = await supabase
+                    .from('antardasha')
+                    .update({
+                        timeline: timeline,
+                        calculated_at: new Date().toISOString(),
+                    })
+                    .eq('student_id', session.id);
+                error = result.error;
+            } else {
+                const result = await supabase
+                    .from('antardasha')
+                    .insert({
+                        student_id: session.id,
+                        timeline: timeline,
+                        calculated_at: new Date().toISOString(),
+                    });
+                error = result.error;
+            }
+
+            if (!error) {
+                setAntardashaTimeline(timeline);
+            } else {
+                console.error('Antardasha save error:', error);
+            }
+        } catch (err) {
+            console.error('Error calculating Antardasha:', err);
+        } finally {
+            setCalculatingAntardasha(false);
+        }
+    };
+
+    const handleDownloadAntardashaPDF = () => {
+        if (!antardashaTimeline || !profile) return;
+
+        const doc = new jsPDF();
+
+        doc.setFontSize(20);
+        doc.text('Antardasha Timeline', 14, 20);
+
+        doc.setFontSize(12);
+        doc.text(`Name: ${profile.full_name}`, 14, 32);
+        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
+
+        const tableData = antardashaTimeline.map((entry) => [
+            entry.year.toString() + (entry.year === currentYear ? ' ✨' : ''),
+            entry.dayName,
+            entry.antardasha.toString()
+        ]);
+
+        autoTable(doc, {
+            startY: 50,
+            head: [['Year', 'Day of Birthday', 'Antardasha']],
+            body: tableData,
+            didParseCell: (data) => {
+                const cellText = data.cell.raw?.toString() || '';
+                if (cellText.includes('✨')) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = [0, 112, 243];
+                }
+            }
+        });
+
+        doc.save(`antardasha_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+    };
+
+    const handleDownloadAntardashaCSV = () => {
+        if (!antardashaTimeline || !profile) return;
+
+        let content = 'Year,Day of Birthday,Antardasha,Current\n';
+
+        antardashaTimeline.forEach((entry) => {
+            const isCurrent = entry.year === currentYear ? 'Yes' : 'No';
+            content += `${entry.year},${entry.dayName},${entry.antardasha},${isCurrent}\n`;
+        });
+
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `antardasha_${profile.full_name.replace(/\s+/g, '_')}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -439,7 +562,88 @@ export default function MePage() {
                             <Card className="mt-4">
                                 <CardBody className="p-6">
                                     <h2 className="text-xl font-semibold mb-4">Antar Dasha</h2>
-                                    <p className="text-default-500">Antar Dasha content coming soon...</p>
+
+                                    {!antardashaTimeline ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-default-500 mb-4">
+                                                Calculate your yearly Antardasha based on your birth date
+                                            </p>
+                                            <Button
+                                                color="primary"
+                                                size="lg"
+                                                onPress={handleCalculateAntardasha}
+                                                isLoading={calculatingAntardasha}
+                                            >
+                                                See my Antardasha
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            {/* Name and DOB display */}
+                                            <div className="mb-4 p-4 bg-default-100 rounded-lg">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-sm text-default-500">Name</p>
+                                                        <p className="font-semibold">{profile?.full_name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm text-default-500">Date of Birth</p>
+                                                        <p className="font-semibold">{profile?.date_of_birth ? formatDate(profile.date_of_birth) : '-'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="max-h-96 overflow-y-auto mb-4">
+                                                <Table aria-label="Antardasha timeline" removeWrapper>
+                                                    <TableHeader>
+                                                        <TableColumn>YEAR</TableColumn>
+                                                        <TableColumn>DAY OF BIRTHDAY</TableColumn>
+                                                        <TableColumn>ANTARDASHA</TableColumn>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {antardashaTimeline.map((entry, idx) => (
+                                                            <TableRow
+                                                                key={idx}
+                                                                className={entry.year === currentYear ? 'bg-primary-100' : ''}
+                                                            >
+                                                                <TableCell>
+                                                                    <span className={entry.year === currentYear ? 'font-bold text-primary' : ''}>
+                                                                        {entry.year}
+                                                                        {entry.year === currentYear && ' ✨'}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <span className={entry.year === currentYear ? 'font-bold text-primary' : ''}>
+                                                                        {entry.dayName}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <span className={entry.year === currentYear ? 'font-bold text-primary' : ''}>
+                                                                        {entry.antardasha}
+                                                                    </span>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                            <ButtonGroup>
+                                                <Button
+                                                    color="primary"
+                                                    onPress={handleDownloadAntardashaPDF}
+                                                >
+                                                    Download PDF
+                                                </Button>
+                                                <Button
+                                                    color="secondary"
+                                                    variant="flat"
+                                                    onPress={handleDownloadAntardashaCSV}
+                                                >
+                                                    Download CSV
+                                                </Button>
+                                            </ButtonGroup>
+                                        </div>
+                                    )}
                                 </CardBody>
                             </Card>
                         </Tab>
