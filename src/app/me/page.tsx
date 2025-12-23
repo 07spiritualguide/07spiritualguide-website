@@ -679,19 +679,18 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="mahadasha" title="Mahadasha">
-                            <Card className="mt-4">
-                                <CardBody className="p-6">
-                                    <h2 className="text-xl font-semibold mb-4">Mahadasha</h2>
+                            <Card className="mt-3 md:mt-4">
+                                <CardBody className="p-4 md:p-6">
+                                    <h2 className="text-lg md:text-xl font-semibold mb-4">Mahadasha</h2>
 
                                     {!mahadashaTimeline ? (
                                         // Show button if not calculated yet
                                         <div className="text-center py-8">
                                             <p className="text-default-500 mb-4">
-                                                Calculate your Mahadasha timeline based on your birth date
+                                                Calculate your Mahadasha timeline
                                             </p>
                                             <Button
                                                 color="primary"
-                                                size="lg"
                                                 onPress={handleCalculateMahadasha}
                                                 isLoading={calculatingMahadasha}
                                             >
@@ -773,18 +772,17 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="antar-dasha" title="Antar Dasha">
-                            <Card className="mt-4">
-                                <CardBody className="p-6">
-                                    <h2 className="text-xl font-semibold mb-4">Antar Dasha</h2>
+                            <Card className="mt-3 md:mt-4">
+                                <CardBody className="p-4 md:p-6">
+                                    <h2 className="text-lg md:text-xl font-semibold mb-4">Antar Dasha</h2>
 
                                     {!antardashaTimeline ? (
                                         <div className="text-center py-8">
                                             <p className="text-default-500 mb-4">
-                                                Calculate your yearly Antardasha based on your birth date
+                                                Calculate your Antardasha sub-periods
                                             </p>
                                             <Button
                                                 color="primary"
-                                                size="lg"
                                                 onPress={handleCalculateAntardasha}
                                                 isLoading={calculatingAntardasha}
                                             >
