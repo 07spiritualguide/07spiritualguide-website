@@ -468,6 +468,133 @@ export default function MePage() {
         URL.revokeObjectURL(url);
     };
 
+    const handleDownloadDailyDashaPDF = () => {
+        if (!pratyantardashaTimeline || !profile) return;
+
+        const doc = new jsPDF();
+        const today = new Date();
+
+        doc.setFontSize(20);
+        doc.text('Daily Dasha Timeline', 14, 20);
+
+        doc.setFontSize(12);
+        doc.text(`Name: ${profile.full_name}`, 14, 32);
+        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
+        doc.text('Showing 60 days (20 past + 40 future)', 14, 48);
+
+        const tableData: string[][] = [];
+        for (let i = -20; i <= 40; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
+            if (!dailyResult) continue;
+            const isToday = i === 0;
+            tableData.push([
+                formatDateForDisplay(date) + (isToday ? ' ✨' : ''),
+                dailyResult.dayName,
+                dailyResult.dailyDasha.toString()
+            ]);
+        }
+
+        autoTable(doc, {
+            startY: 56,
+            head: [['Date', 'Day', 'Daily Dasha']],
+            body: tableData,
+            didParseCell: (data) => {
+                const cellText = data.cell.raw?.toString() || '';
+                if (cellText.includes('✨')) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = [0, 112, 243];
+                }
+            }
+        });
+
+        doc.save(`daily_dasha_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+    };
+
+    const handleDownloadDailyDashaCSV = () => {
+        if (!pratyantardashaTimeline || !profile) return;
+
+        const today = new Date();
+        let content = 'Date,Day,Daily Dasha,Today\n';
+
+        for (let i = -20; i <= 40; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
+            if (!dailyResult) continue;
+            const isToday = i === 0 ? 'Yes' : 'No';
+            content += `${formatDateForDisplay(date)},${dailyResult.dayName},${dailyResult.dailyDasha},${isToday}\n`;
+        }
+
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `daily_dasha_${profile.full_name.replace(/\s+/g, '_')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadHourlyDashaPDF = () => {
+        if (!pratyantardashaTimeline || !profile) return;
+
+        const doc = new jsPDF();
+        const date = new Date(selectedDailyDate);
+        const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
+        if (!dailyResult) return;
+
+        const hourlyData = calculateAllHourlyDasha(dailyResult.dailyDasha);
+
+        doc.setFontSize(20);
+        doc.text('Hourly Dasha Timeline', 14, 20);
+
+        doc.setFontSize(12);
+        doc.text(`Name: ${profile.full_name}`, 14, 32);
+        doc.text(`Date: ${formatDateForDisplay(date)} (${dailyResult.dayName})`, 14, 40);
+        doc.text(`Daily Dasha: ${dailyResult.dailyDasha}`, 14, 48);
+
+        const tableData = hourlyData.map((item) => [
+            item.hour,
+            item.hourlyDasha.toString()
+        ]);
+
+        autoTable(doc, {
+            startY: 56,
+            head: [['Time', 'Hourly Dasha']],
+            body: tableData,
+        });
+
+        doc.save(`hourly_dasha_${formatDateForDisplay(date).replace(/\s+/g, '_')}_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+    };
+
+    const handleDownloadHourlyDashaCSV = () => {
+        if (!pratyantardashaTimeline || !profile) return;
+
+        const date = new Date(selectedDailyDate);
+        const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
+        if (!dailyResult) return;
+
+        const hourlyData = calculateAllHourlyDasha(dailyResult.dailyDasha);
+
+        let content = 'Time,Hourly Dasha\n';
+        hourlyData.forEach((item) => {
+            content += `${item.hour},${item.hourlyDasha}\n`;
+        });
+
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `hourly_dasha_${formatDateForDisplay(date).replace(/\s+/g, '_')}_${profile.full_name.replace(/\s+/g, '_')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -1066,6 +1193,21 @@ export default function MePage() {
                                                     </TableBody>
                                                 </Table>
                                             </div>
+                                            <ButtonGroup className="mt-4">
+                                                <Button
+                                                    color="primary"
+                                                    onPress={handleDownloadDailyDashaPDF}
+                                                >
+                                                    Download PDF
+                                                </Button>
+                                                <Button
+                                                    color="secondary"
+                                                    variant="flat"
+                                                    onPress={handleDownloadDailyDashaCSV}
+                                                >
+                                                    Download CSV
+                                                </Button>
+                                            </ButtonGroup>
                                         </div>
                                     )}
                                 </CardBody>
@@ -1170,6 +1312,21 @@ export default function MePage() {
                                                                 </TableBody>
                                                             </Table>
                                                         </div>
+                                                        <ButtonGroup className="mt-4">
+                                                            <Button
+                                                                color="primary"
+                                                                onPress={handleDownloadHourlyDashaPDF}
+                                                            >
+                                                                Download PDF
+                                                            </Button>
+                                                            <Button
+                                                                color="secondary"
+                                                                variant="flat"
+                                                                onPress={handleDownloadHourlyDashaCSV}
+                                                            >
+                                                                Download CSV
+                                                            </Button>
+                                                        </ButtonGroup>
                                                     </>
                                                 );
                                             })()}
