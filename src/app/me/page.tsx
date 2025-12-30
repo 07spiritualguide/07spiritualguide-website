@@ -1372,13 +1372,14 @@ export default function MePage() {
                                                 size="sm"
                                                 classNames={{
                                                     tabList: "overflow-x-auto flex-nowrap scrollbar-hide",
-                                                    tab: "min-w-fit px-2 text-xs md:text-sm whitespace-nowrap"
+                                                    tab: "min-w-fit px-2 text-xs md:text-sm whitespace-nowrap",
+                                                    base: "w-full"
                                                 }}
                                             >
                                                 {/* NATAL GRID */}
                                                 <Tab key="natal" title="Natal">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal'] as DigitSource[]} />
+                                                        <GridLegend sources={['natal'] as DigitSource[]} compact />
                                                         <div className="mt-4 flex justify-center">
                                                             <LoShuGridComponent
                                                                 grid={calculateNatalGrid(profile.date_of_birth)}
@@ -1394,7 +1395,7 @@ export default function MePage() {
                                                 {/* BASIC GRID */}
                                                 <Tab key="basic-grid" title="Basic">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal', 'root'] as DigitSource[]} />
+                                                        <GridLegend sources={['natal', 'root'] as DigitSource[]} compact />
                                                         <div className="mt-4 flex justify-center">
                                                             <LoShuGridComponent
                                                                 grid={calculateBasicGrid(
@@ -1413,7 +1414,7 @@ export default function MePage() {
                                                 {/* DESTINY GRID */}
                                                 <Tab key="destiny-grid" title="Destiny">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal', 'root', 'destiny'] as DigitSource[]} />
+                                                        <GridLegend sources={['natal', 'root', 'destiny'] as DigitSource[]} compact />
                                                         <div className="mt-4 flex justify-center">
                                                             <LoShuGridComponent
                                                                 grid={calculateDestinyGrid(
@@ -1448,7 +1449,7 @@ export default function MePage() {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <GridLegend sources={['natal', 'root', 'destiny', 'mahadasha'] as DigitSource[]} />
+                                                                <GridLegend sources={['natal', 'root', 'destiny', 'mahadasha'] as DigitSource[]} compact />
                                                                 <div className="mt-4 flex justify-center">
                                                                     <LoShuGridComponent
                                                                         grid={calculateMahadashaGrid(
@@ -1492,9 +1493,9 @@ export default function MePage() {
                                                                 />
 
                                                                 <div className="flex flex-col md:flex-row justify-between items-center mt-4 mb-4 gap-4">
-                                                                    <p className="text-sm text-default-500">
+                                                                    {/* <p className="text-sm text-default-500">
                                                                         Showing 16 years from {selectedPersonalYearStart}
-                                                                    </p>
+                                                                    </p> */}
                                                                     <Select
                                                                         label="Select Year Range"
                                                                         className="max-w-xs"
@@ -1513,7 +1514,7 @@ export default function MePage() {
                                                                     </Select>
                                                                 </div>
 
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                                                     {Array.from({ length: 16 }, (_, i) => {
                                                                         const year = selectedPersonalYearStart + i;
                                                                         return (
@@ -1580,7 +1581,7 @@ export default function MePage() {
                                                                         })}
                                                                     </Select>
                                                                 </div>
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                                     {MONTH_NAMES.map((monthName, monthIndex) => (
                                                                         <div key={monthIndex} className="flex flex-col items-center">
                                                                             <LoShuGridComponent
