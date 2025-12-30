@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardBody, Spinner, Tabs, Tab, Chip, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, ButtonGroup } from '@heroui/react';
+import { Card, CardBody, Spinner, Tabs, Tab, Chip, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, ButtonGroup, Select, SelectItem } from '@heroui/react';
 import { supabase } from '@/lib/supabase';
 import { getStudentSession, StudentSession } from '@/lib/auth';
 import { calculateMahadasha, MahadashaEntry, isCurrentMahadasha } from '@/lib/mahadasha';
@@ -65,6 +65,7 @@ export default function MePage() {
     const [selectedTab, setSelectedTab] = useState('basic');
     const [selectedGridTab, setSelectedGridTab] = useState('natal');
     const [selectedMonthlyYear, setSelectedMonthlyYear] = useState<number>(new Date().getFullYear());
+    const [selectedPersonalYearStart, setSelectedPersonalYearStart] = useState<number>(new Date().getFullYear());
 
     useEffect(() => {
         checkAuth();
@@ -1052,18 +1053,18 @@ export default function MePage() {
 
                                             {/* Year selector */}
                                             <div className="mb-4">
-                                                <label className="text-sm text-default-500 block mb-2">Select Year</label>
-                                                <select
-                                                    className="w-full md:w-48 p-2 border border-default-300 rounded-lg bg-background"
-                                                    value={selectedPratyantarYear}
-                                                    onChange={(e) => setSelectedPratyantarYear(parseInt(e.target.value))}
+                                                <Select
+                                                    label="Select Year"
+                                                    className="max-w-xs"
+                                                    selectedKeys={[selectedPratyantarYear.toString()]}
+                                                    onSelectionChange={(keys) => setSelectedPratyantarYear(Number(Array.from(keys)[0]))}
                                                 >
-                                                    {pratyantardashaTimeline.map((yearData) => (
-                                                        <option key={yearData.year} value={yearData.year}>
-                                                            {yearData.year} {yearData.year === new Date().getFullYear() ? '(Current)' : ''}
-                                                        </option>
+                                                    {pratyantardashaTimeline.map((y) => (
+                                                        <SelectItem key={y.year.toString()} textValue={y.year.toString()}>
+                                                            {y.year.toString()}
+                                                        </SelectItem>
                                                     ))}
-                                                </select>
+                                                </Select>
                                             </div>
 
                                             {/* Periods table */}
@@ -1489,12 +1490,32 @@ export default function MePage() {
                                                                     sources={['natal', 'root', 'destiny', 'mahadasha', 'antardasha'] as DigitSource[]}
                                                                     compact
                                                                 />
-                                                                <p className="text-sm text-default-500 mt-2 mb-4">
-                                                                    16 years from current year
-                                                                </p>
+
+                                                                <div className="flex flex-col md:flex-row justify-between items-center mt-4 mb-4 gap-4">
+                                                                    <p className="text-sm text-default-500">
+                                                                        Showing 16 years from {selectedPersonalYearStart}
+                                                                    </p>
+                                                                    <Select
+                                                                        label="Select Year Range"
+                                                                        className="max-w-xs"
+                                                                        selectedKeys={[selectedPersonalYearStart.toString()]}
+                                                                        onSelectionChange={(keys) => setSelectedPersonalYearStart(Number(Array.from(keys)[0]))}
+                                                                    >
+                                                                        {Array.from({ length: 10 }, (_, i) => {
+                                                                            const startYear = new Date().getFullYear() - 16 + (i * 16);
+                                                                            const endYear = startYear + 15;
+                                                                            return (
+                                                                                <SelectItem key={startYear.toString()} textValue={`${startYear} - ${endYear}`}>
+                                                                                    {startYear} - {endYear}
+                                                                                </SelectItem>
+                                                                            );
+                                                                        })}
+                                                                    </Select>
+                                                                </div>
+
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                                                     {Array.from({ length: 16 }, (_, i) => {
-                                                                        const year = new Date().getFullYear() + i;
+                                                                        const year = selectedPersonalYearStart + i;
                                                                         return (
                                                                             <div key={year} className="flex flex-col items-center">
                                                                                 <LoShuGridComponent
@@ -1543,19 +1564,21 @@ export default function MePage() {
                                                                     />
                                                                 </div>
                                                                 <div className="mb-4">
-                                                                    <label className="text-sm text-default-500 block mb-2">Select Year</label>
-                                                                    <select
-                                                                        className="w-full md:w-48 p-2 border border-default-300 rounded-lg bg-background"
-                                                                        value={selectedMonthlyYear}
-                                                                        onChange={(e) => setSelectedMonthlyYear(parseInt(e.target.value))}
+                                                                    <Select
+                                                                        label="Select Year"
+                                                                        className="max-w-xs"
+                                                                        selectedKeys={[selectedMonthlyYear.toString()]}
+                                                                        onSelectionChange={(keys) => setSelectedMonthlyYear(Number(Array.from(keys)[0]))}
                                                                     >
                                                                         {Array.from({ length: 20 }, (_, i) => {
                                                                             const year = new Date().getFullYear() - 5 + i;
                                                                             return (
-                                                                                <option key={year} value={year}>{year}</option>
+                                                                                <SelectItem key={year.toString()} textValue={year.toString()}>
+                                                                                    {year.toString()}
+                                                                                </SelectItem>
                                                                             );
                                                                         })}
-                                                                    </select>
+                                                                    </Select>
                                                                 </div>
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                                     {MONTH_NAMES.map((monthName, monthIndex) => (
