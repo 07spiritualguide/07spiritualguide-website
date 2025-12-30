@@ -1395,7 +1395,7 @@ export default function MePage() {
                                                 {/* BASIC GRID */}
                                                 <Tab key="basic-grid" title="Basic">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal', 'root'] as DigitSource[]} compact />
+                                                        <GridLegend sources={['natal'] as DigitSource[]} compact />
                                                         <div className="mt-4 flex justify-center">
                                                             <LoShuGridComponent
                                                                 grid={calculateBasicGrid(
@@ -1414,7 +1414,7 @@ export default function MePage() {
                                                 {/* DESTINY GRID */}
                                                 <Tab key="destiny-grid" title="Destiny">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal', 'root', 'destiny'] as DigitSource[]} compact />
+                                                        <GridLegend sources={['natal', 'destiny'] as DigitSource[]} compact />
                                                         <div className="mt-4 flex justify-center">
                                                             <LoShuGridComponent
                                                                 grid={calculateDestinyGrid(
@@ -1449,7 +1449,7 @@ export default function MePage() {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <GridLegend sources={['natal', 'root', 'destiny', 'mahadasha'] as DigitSource[]} compact />
+                                                                <GridLegend sources={['natal', 'destiny', 'mahadasha'] as DigitSource[]} compact />
                                                                 <div className="mt-4 flex justify-center">
                                                                     <LoShuGridComponent
                                                                         grid={calculateMahadashaGrid(
@@ -1488,7 +1488,7 @@ export default function MePage() {
                                                         ) : (
                                                             <>
                                                                 <GridLegend
-                                                                    sources={['natal', 'root', 'destiny', 'mahadasha', 'antardasha'] as DigitSource[]}
+                                                                    sources={['natal', 'destiny', 'mahadasha', 'antardasha'] as DigitSource[]}
                                                                     compact
                                                                 />
 
@@ -1560,7 +1560,7 @@ export default function MePage() {
                                                             <>
                                                                 <div className="flex flex-wrap items-center gap-4 mb-4">
                                                                     <GridLegend
-                                                                        sources={['natal', 'root', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]}
+                                                                        sources={['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]}
                                                                         compact
                                                                     />
                                                                 </div>
