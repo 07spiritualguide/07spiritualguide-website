@@ -53,7 +53,7 @@ export default function ManageStudentsPage() {
 
     const sendCredentialsSms = async (studentPhone: string, studentName: string, password: string) => {
         try {
-            const message = `Welcome to Spiritual Guide! Your login credentials:\nPhone: ${studentPhone}\nPassword: ${password}`;
+            const message = `Hi ${studentName}, Welcome to Numerosense!\n\nYour login details:\nPhone: ${studentPhone}\nPassword: ${password}\n\nLog in at: www.numerosense.com/login`;
 
             const response = await fetch('/api/send-sms', {
                 method: 'POST',
