@@ -106,3 +106,8 @@ body {
 [data-slot="tabList"] {
   background-color: var(--destiny-tablist, transparent) !important;
 }
+
+/* Destiny theme button text color */
+button[style*="--destiny-primary"] {
+  color: var(--foreground) !important;
+}
