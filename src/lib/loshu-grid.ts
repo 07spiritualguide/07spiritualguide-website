@@ -47,7 +47,7 @@ export type LoShuGrid = GridCell[];
 
 // Color mapping for sources
 export const SOURCE_COLORS: { [key in DigitSource]: string } = {
-    natal: 'text-gray-300',
+    natal: 'text-[#828282]',
     root: 'text-yellow-400',
     destiny: 'text-green-400',
     mahadasha: 'text-blue-400',

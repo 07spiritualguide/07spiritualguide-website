@@ -67,21 +67,21 @@ export default function MePage() {
     const [calculatingAntardasha, setCalculatingAntardasha] = useState(false);
     const [calculatingPratyantardasha, setCalculatingPratyantardasha] = useState(false);
     const [selectedTab, setSelectedTab] = useState('basic');
-    const [selectedGridTab, setSelectedGridTab] = useState('natal');
+    const [selectedGridTab, setSelectedGridTab] = useState('basic-grids');
     const [selectedMonthlyYear, setSelectedMonthlyYear] = useState<number>(new Date().getFullYear());
     const [selectedPersonalYearStart, setSelectedPersonalYearStart] = useState<number>(new Date().getFullYear());
 
     // Destiny number to theme color mapping
-    const DESTINY_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; tabList: string }> = {
-        1: { bg: '#FEF5C3', card: '#FFFEF5', accent: '#D4A017', primary: '#FFE44E', tabList: '#FFF4B8' },
-        2: { bg: '#E2FF90', card: '#F5FFF0', accent: '#4CAF50', primary: '#BCFF00', tabList: '#DFFF84' },
-        3: { bg: '#FEE5F3', card: '#FFF5FB', accent: '#E91E63', primary: '#FF77C3', tabList: '#FFE0F2' },
-        4: { bg: '#D5E4FF', card: '#F0F5FF', accent: '#2196F3', primary: '#5995FF', tabList: '#CFE0FF' },
-        5: { bg: '#C9FFC4', card: '#F0FFF0', accent: '#8BC34A', primary: '#6FFF62', tabList: '#BDFFB7' },
-        6: { bg: '#D5FCFF', card: '#F0FFFF', accent: '#00BCD4', primary: '#51F3FF', tabList: '#CEFBFF' },
-        7: { bg: '#FFFBD4', card: '#FFFFF5', accent: '#FFC107', primary: '#FFF163', tabList: '#FFFAC8' },
-        8: { bg: '#E6D1A2', card: '#FFF8F0', accent: '#795548', primary: '#FBB821', tabList: '#E2CC9D' },
-        9: { bg: '#FFC2C3', card: '#FFF5F5', accent: '#F44336', primary: '#FF4E51', tabList: '#FFBDBE' },
+    const DESTINY_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; tabList: string; gridBorder: string; gridBg: string }> = {
+        1: { bg: '#FEF5C3', card: '#FFFEF5', accent: '#D4A017', primary: '#FFE44E', tabList: '#FFF4B8', gridBorder: '#FFF4B8', gridBg: '#FFFADB' },
+        2: { bg: '#E2FF90', card: '#F5FFF0', accent: '#4CAF50', primary: '#BCFF00', tabList: '#DFFF84', gridBorder: '#E6FFA1', gridBg: '#F1FFCA' },
+        3: { bg: '#FEE5F3', card: '#FFF5FB', accent: '#E91E63', primary: '#FF77C3', tabList: '#FFE0F2', gridBorder: '#FFE0F2', gridBg: '#FFECF7' },
+        4: { bg: '#D5E4FF', card: '#F0F5FF', accent: '#2196F3', primary: '#5995FF', tabList: '#CFE0FF', gridBorder: '#CFE0FF', gridBg: '#E6EFFF' },
+        5: { bg: '#C9FFC4', card: '#F0FFF0', accent: '#8BC34A', primary: '#6FFF62', tabList: '#BDFFB7', gridBorder: '#BDFFB7', gridBg: '#E1FFDE' },
+        6: { bg: '#D5FCFF', card: '#F0FFFF', accent: '#00BCD4', primary: '#51F3FF', tabList: '#CEFBFF', gridBorder: '#BDFAFF', gridBg: '#DFFDFF' },
+        7: { bg: '#FFFBD4', card: '#FFFFF5', accent: '#FFC107', primary: '#FFF163', tabList: '#FFFAC8', gridBorder: '#FFF9BD', gridBg: '#FFFCE3' },
+        8: { bg: '#E6D1A2', card: '#FFF8F0', accent: '#795548', primary: '#FBB821', tabList: '#E2CC9D', gridBorder: '#FFEFCC', gridBg: '#FFF6E3' },
+        9: { bg: '#FFC2C3', card: '#FFF5F5', accent: '#F44336', primary: '#FF4E51', tabList: '#FFBDBE', gridBorder: '#FFE2E2', gridBg: '#FFF5F5' },
     };
 
     useEffect(() => {
@@ -98,6 +98,8 @@ export default function MePage() {
                 document.documentElement.style.setProperty('--destiny-accent', theme.accent);
                 document.documentElement.style.setProperty('--destiny-primary', theme.primary);
                 document.documentElement.style.setProperty('--destiny-tablist', theme.tabList);
+                document.documentElement.style.setProperty('--destiny-grid-border', theme.gridBorder);
+                document.documentElement.style.setProperty('--destiny-grid-bg', theme.gridBg);
             }
         }
         return () => {
@@ -106,6 +108,8 @@ export default function MePage() {
             document.documentElement.style.removeProperty('--destiny-accent');
             document.documentElement.style.removeProperty('--destiny-primary');
             document.documentElement.style.removeProperty('--destiny-tablist');
+            document.documentElement.style.removeProperty('--destiny-grid-border');
+            document.documentElement.style.removeProperty('--destiny-grid-bg');
         };
     }, [basicInfo?.destiny_number]);
 
@@ -1501,58 +1505,49 @@ export default function MePage() {
                                                     base: "w-full"
                                                 }}
                                             >
-                                                {/* NATAL GRID */}
-                                                <Tab key="natal" title="Natal">
+                                                {/* BASIC TAB - Natal, Basic & Destiny Grids */}
+                                                <Tab key="basic-grids" title="Basic">
                                                     <div className="mt-4">
-                                                        <GridLegend sources={['natal'] as DigitSource[]} compact />
-                                                        <div className="mt-4 flex justify-center">
-                                                            <LoShuGridComponent
-                                                                grid={calculateNatalGrid(profile.date_of_birth)}
-                                                                title="Natal Grid"
-                                                            />
-                                                        </div>
-                                                        <p className="text-center text-sm text-default-500 mt-4">
-                                                            Based on birth date digits only
-                                                        </p>
-                                                    </div>
-                                                </Tab>
+                                                        {/* Unified Legend */}
+                                                        <GridLegend sources={['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]} compact />
 
-                                                {/* BASIC GRID */}
-                                                <Tab key="basic-grid" title="Basic">
-                                                    <div className="mt-4">
-                                                        <GridLegend sources={['natal'] as DigitSource[]} compact />
-                                                        <div className="mt-4 flex justify-center">
-                                                            <LoShuGridComponent
-                                                                grid={calculateBasicGrid(
-                                                                    profile.date_of_birth,
-                                                                    basicInfo.root_number || 1
-                                                                )}
-                                                                title="Basic Grid"
-                                                            />
+                                                        {/* Three grids in a row */}
+                                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div className="flex flex-col items-center">
+                                                                <LoShuGridComponent
+                                                                    grid={calculateNatalGrid(profile.date_of_birth)}
+                                                                    title="Natal Grid"
+                                                                />
+                                                                <p className="text-center text-xs text-default-500 mt-2">
+                                                                    Birth date digits
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex flex-col items-center">
+                                                                <LoShuGridComponent
+                                                                    grid={calculateBasicGrid(
+                                                                        profile.date_of_birth,
+                                                                        basicInfo.root_number || 1
+                                                                    )}
+                                                                    title="Basic Grid"
+                                                                />
+                                                                <p className="text-center text-xs text-default-500 mt-2">
+                                                                    Natal + Root Number
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex flex-col items-center">
+                                                                <LoShuGridComponent
+                                                                    grid={calculateDestinyGrid(
+                                                                        profile.date_of_birth,
+                                                                        basicInfo.root_number || 1,
+                                                                        basicInfo.destiny_number || 1
+                                                                    )}
+                                                                    title="Destiny Grid"
+                                                                />
+                                                                <p className="text-center text-xs text-default-500 mt-2">
+                                                                    Basic + Destiny Number
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <p className="text-center text-sm text-default-500 mt-4">
-                                                            Natal + Root Number (if not already present)
-                                                        </p>
-                                                    </div>
-                                                </Tab>
-
-                                                {/* DESTINY GRID */}
-                                                <Tab key="destiny-grid" title="Destiny">
-                                                    <div className="mt-4">
-                                                        <GridLegend sources={['natal', 'destiny'] as DigitSource[]} compact />
-                                                        <div className="mt-4 flex justify-center">
-                                                            <LoShuGridComponent
-                                                                grid={calculateDestinyGrid(
-                                                                    profile.date_of_birth,
-                                                                    basicInfo.root_number || 1,
-                                                                    basicInfo.destiny_number || 1
-                                                                )}
-                                                                title="Destiny Grid"
-                                                            />
-                                                        </div>
-                                                        <p className="text-center text-sm text-default-500 mt-4">
-                                                            Basic + Destiny Number
-                                                        </p>
                                                     </div>
                                                 </Tab>
 
@@ -1575,7 +1570,7 @@ export default function MePage() {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <GridLegend sources={['natal', 'destiny', 'mahadasha'] as DigitSource[]} compact />
+                                                                <GridLegend sources={['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]} compact />
                                                                 <div className="mt-4 flex justify-center">
                                                                     <LoShuGridComponent
                                                                         grid={calculateMahadashaGrid(
@@ -1615,7 +1610,7 @@ export default function MePage() {
                                                         ) : (
                                                             <>
                                                                 <GridLegend
-                                                                    sources={['natal', 'destiny', 'mahadasha', 'antardasha'] as DigitSource[]}
+                                                                    sources={['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]}
                                                                     compact
                                                                 />
 
