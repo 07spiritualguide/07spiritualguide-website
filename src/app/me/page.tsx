@@ -52,6 +52,72 @@ interface BasicInfo {
     name_number: number | null;
 }
 
+// Lucky color to hex mapping
+const COLOR_HEX_MAP: { [key: string]: string } = {
+    // Basic colors
+    'red': '#EF4444',
+    'green': '#22C55E',
+    'blue': '#3B82F6',
+    'yellow': '#EAB308',
+    'orange': '#F97316',
+    'purple': '#8B5CF6',
+    'pink': '#EC4899',
+    'white': '#F8FAFC',
+    'black': '#1F2937',
+    'brown': '#92400E',
+    'grey': '#6B7280',
+    'gray': '#6B7280',
+    'cream': '#FEF3C7',
+
+    // Variations
+    'light green': '#86EFAC',
+    'light pink': '#FBCFE8',
+    'dark pink': '#DB2777',
+    'dark brown': '#78350F',
+    'golden yellow': '#FBBF24',
+    'metallic blue': '#60A5FA',
+    'khakee': '#BDB76B',
+    'pastel shades': '#E9D5FF',
+};
+
+// Parse color string and extract individual colors (only valid colors)
+function parseColors(colorString: string | null): string[] {
+    if (!colorString) return [];
+    const cleaned = colorString.replace(/\([^)]*\)/g, '');
+    return cleaned
+        .split(',')
+        .map(c => c.trim())
+        .filter(c => {
+            const normalized = c.toLowerCase().trim();
+            return c.length > 0 && COLOR_HEX_MAP[normalized] !== undefined;
+        });
+}
+
+// Extract notes/non-color text from color string
+function extractColorNotes(colorString: string | null): string | null {
+    if (!colorString) return null;
+    const notes: string[] = [];
+    const parenthesesMatch = colorString.match(/\(([^)]+)\)/g);
+    if (parenthesesMatch) {
+        notes.push(...parenthesesMatch.map(m => m.slice(1, -1)));
+    }
+    const cleaned = colorString.replace(/\([^)]*\)/g, '');
+    const items = cleaned.split(',').map(c => c.trim()).filter(c => c.length > 0);
+    items.forEach(item => {
+        const normalized = item.toLowerCase().trim();
+        if (COLOR_HEX_MAP[normalized] === undefined) {
+            notes.push(item);
+        }
+    });
+    return notes.length > 0 ? notes.join(' • ') : null;
+}
+
+// Get hex color for a color name
+function getColorHex(colorName: string): string {
+    const normalized = colorName.toLowerCase().trim();
+    return COLOR_HEX_MAP[normalized] || '#9CA3AF';
+}
+
 export default function MePage() {
     const router = useRouter();
     const [session, setSession] = useState<StudentSession | null>(null);
@@ -855,9 +921,27 @@ export default function MePage() {
                                             <p className="text-sm text-default-500">Zodiac Sign</p>
                                             <p className="text-lg">{basicInfo?.zodiac_sign ?? <span className="text-default-400">Coming soon</span>}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-default-500">Lucky Color</p>
-                                            <p className="text-lg">{basicInfo?.lucky_color ?? <span className="text-default-400">Coming soon</span>}</p>
+                                        <div className="col-span-2">
+                                            <p className="text-sm text-default-500 mb-3">Lucky Colors</p>
+                                            <div className="flex flex-wrap gap-4">
+                                                {parseColors(basicInfo?.lucky_color ?? null).map((color, idx) => (
+                                                    <div key={idx} className="flex flex-col items-center">
+                                                        <span className="text-sm mb-1 capitalize">{color}</span>
+                                                        <div
+                                                            className="w-12 h-12 rounded-lg shadow-md"
+                                                            style={{
+                                                                backgroundColor: getColorHex(color),
+                                                                border: `2px solid ${getColorHex(color)}80`
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {extractColorNotes(basicInfo?.lucky_color ?? null) && (
+                                                <p className="text-xs text-default-400 italic mt-2">
+                                                    {extractColorNotes(basicInfo?.lucky_color ?? null)}
+                                                </p>
+                                            )}
                                         </div>
                                         <div>
                                             <p className="text-sm text-default-500">Lucky Direction</p>
