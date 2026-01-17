@@ -24,6 +24,7 @@ import GridLegend from '@/components/grids/GridLegend';
 import StudentNavbar from '@/components/StudentNavbar';
 import Compass from '@/components/Compass';
 import { extractFirstLastName, calculateNameNumber, getNameBreakdown } from '@/lib/name-numerology';
+import { getQuoteForCurrentTime } from '@/lib/quotes';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -836,7 +837,7 @@ export default function MePage() {
                     {/* Header */}
                     <div className="mb-4 md:mb-6 mt-2 md:mt-4">
                         <h1 className="text-xl md:text-2xl font-bold truncate">Welcome, {profile?.full_name}</h1>
-                        <p className="text-default-500 text-sm md:text-base">Your spiritual journey awaits</p>
+                        <p className="text-default-500 text-sm md:text-base italic">"{getQuoteForCurrentTime()}"</p>
                     </div>
 
                     {/* Tabs */}
