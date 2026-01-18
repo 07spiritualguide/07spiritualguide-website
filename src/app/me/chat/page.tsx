@@ -134,13 +134,13 @@ export default function NumeroAIChatPage() {
 
         const { data: student } = await supabase
             .from('students')
-            .select('full_name, dob')
+            .select('full_name, date_of_birth')
             .eq('id', session.id)
             .single();
 
         setUserContext({
             full_name: student?.full_name || '',
-            dob: student?.dob || '',
+            dob: student?.date_of_birth || '',
             root_number: basicInfo?.root_number || null,
             destiny_number: basicInfo?.destiny_number || null,
             name_number: basicInfo?.name_number || null,

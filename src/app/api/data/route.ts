@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
             case 'update-student-profile': {
                 const { error } = await supabase
                     .from('students')
-                    .update({ ...data, updated_at: new Date().toISOString() })
+                    .update(data)
                     .eq('id', session.studentId);
                 if (error) throw error;
                 return NextResponse.json({ success: true }, { headers: corsHeaders() });
