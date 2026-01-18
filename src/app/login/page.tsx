@@ -14,6 +14,19 @@ export default function StudentLoginPage() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Input validation
+        const phoneClean = phone.trim().replace(/\D/g, '');
+        if (phoneClean.length < 5 || phoneClean.length > 15) {
+            setError('Please enter a valid phone number');
+            return;
+        }
+
+        if (password.length < 4) {
+            setError('Password must be at least 4 characters');
+            return;
+        }
+
         setLoading(true);
         setError('');
 

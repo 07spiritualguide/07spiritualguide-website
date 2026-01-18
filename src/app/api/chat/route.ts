@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 /**
  * Server-side proxy for OpenRouter AI API
  * This keeps the API key secure on the server
@@ -12,7 +18,7 @@ export async function POST(request: NextRequest) {
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json(
                 { error: 'Messages array is required' },
-                { status: 400 }
+                { status: 400, headers: corsHeaders }
             );
         }
 
@@ -22,7 +28,7 @@ export async function POST(request: NextRequest) {
             console.error('OPENROUTER_API_KEY not configured');
             return NextResponse.json(
                 { error: 'AI service not configured' },
-                { status: 500 }
+                { status: 500, headers: corsHeaders }
             );
         }
 
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
                 'X-Title': 'NumeroSense',
             },
             body: JSON.stringify({
-                model: model || 'nvidia/nemotron-3-nano-30b-a3b:free',
+                model: model || 'xiaomi/mimo-v2-flash:free',
                 messages,
             }),
         });
@@ -46,16 +52,16 @@ export async function POST(request: NextRequest) {
             console.error('OpenRouter error:', data.error);
             return NextResponse.json(
                 { error: data.error.message || 'AI service error' },
-                { status: response.status }
+                { status: response.status, headers: corsHeaders }
             );
         }
 
-        return NextResponse.json(data);
+        return NextResponse.json(data, { headers: corsHeaders });
     } catch (error) {
         console.error('Chat API error:', error);
         return NextResponse.json(
             { error: 'Failed to process chat request' },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }
         );
     }
 }
