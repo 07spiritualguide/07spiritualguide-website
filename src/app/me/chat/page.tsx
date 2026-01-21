@@ -366,6 +366,7 @@ Current Antardasha: ${currentAntardasha ? `Number ${currentAntardasha.number}` :
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    studentId: session.id,
                     model: 'nvidia/nemotron-3-nano-30b-a3b:free',
                     messages: conversationHistory,
                 }),

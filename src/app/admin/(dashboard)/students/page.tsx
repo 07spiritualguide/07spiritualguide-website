@@ -59,7 +59,7 @@ export default function ManageStudentsPage() {
         setLoadingStudents(true);
         const { data, error } = await supabase
             .from('students')
-            .select('*')
+            .select('id, name, phone, is_active, created_at, last_login, trial_ends_at, extension_used')
             .order('created_at', { ascending: false });
 
         if (error) {

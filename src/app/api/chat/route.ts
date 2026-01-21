@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -7,13 +8,57 @@ const corsHeaders = {
 };
 
 /**
+ * Validate that the studentId exists and is active
+ */
+async function validateStudent(studentId: string): Promise<boolean> {
+    if (!studentId) return false;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+    const key = (serviceRoleKey && serviceRoleKey !== 'YOUR_SERVICE_ROLE_KEY_HERE')
+        ? serviceRoleKey
+        : anonKey;
+
+    const supabase = createClient(supabaseUrl, key, {
+        auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: student, error } = await supabase
+        .from('students')
+        .select('id, is_active')
+        .eq('id', studentId)
+        .single();
+
+    return !error && student && student.is_active;
+}
+
+/**
  * Server-side proxy for OpenRouter AI API
  * This keeps the API key secure on the server
+ * Requires valid studentId for authentication
  */
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { messages, model } = body;
+        const { messages, model, studentId } = body;
+
+        // Validate student authentication
+        if (!studentId) {
+            return NextResponse.json(
+                { error: 'Authentication required' },
+                { status: 401, headers: corsHeaders }
+            );
+        }
+
+        const isValidStudent = await validateStudent(studentId);
+        if (!isValidStudent) {
+            return NextResponse.json(
+                { error: 'Invalid or inactive account' },
+                { status: 403, headers: corsHeaders }
+            );
+        }
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json(
