@@ -191,9 +191,13 @@ export default function MePage() {
     // Set theme colors based on destiny number
     useEffect(() => {
         if (basicInfo?.destiny_number) {
+            // Cache destiny number for next page load
+            localStorage.setItem('destiny_number', String(basicInfo.destiny_number));
+
             const theme = DESTINY_THEME[basicInfo.destiny_number];
             if (theme) {
-                document.body.style.backgroundColor = theme.bg;
+                // Use CSS variable for background (set by inline script or here)
+                document.documentElement.style.setProperty('--destiny-bg', theme.bg);
                 document.documentElement.style.setProperty('--destiny-card', theme.card);
                 document.documentElement.style.setProperty('--destiny-accent', theme.accent);
                 document.documentElement.style.setProperty('--destiny-primary', theme.primary);
@@ -203,7 +207,7 @@ export default function MePage() {
             }
         }
         return () => {
-            document.body.style.backgroundColor = '';
+            document.documentElement.style.removeProperty('--destiny-bg');
             document.documentElement.style.removeProperty('--destiny-card');
             document.documentElement.style.removeProperty('--destiny-accent');
             document.documentElement.style.removeProperty('--destiny-primary');

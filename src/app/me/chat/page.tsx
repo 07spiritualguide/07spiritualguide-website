@@ -69,6 +69,17 @@ export default function NumeroAIChatPage() {
 
     const theme = DESTINY_THEME[destinyNumber] || DESTINY_THEME[1];
 
+    // Apply cached theme immediately on mount to prevent flash
+    useEffect(() => {
+        const cachedDestiny = localStorage.getItem('destiny_number');
+        if (cachedDestiny) {
+            const num = parseInt(cachedDestiny, 10);
+            if (DESTINY_THEME[num]) {
+                setDestinyNumber(num);
+            }
+        }
+    }, []);
+
     useEffect(() => {
         checkAuth();
     }, []);
