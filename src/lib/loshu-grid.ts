@@ -83,8 +83,12 @@ export function extractNatalDigits(dateOfBirth: string): ColoredDigit[] {
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
 
+    // Use only last 2 digits of year (exclude century)
+    // E.g., 1982 -> 82, 2004 -> 4, 2000 -> 0
+    const yearLastTwo = year % 100;
+
     // Combine all parts as string
-    const dateStr = `${day}${month}${year}`;
+    const dateStr = `${day}${month}${yearLastTwo}`;
 
     // Extract digits, remove zeros
     const digits: ColoredDigit[] = [];

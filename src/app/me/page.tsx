@@ -1660,35 +1660,14 @@ export default function MePage() {
                                                     base: "w-full"
                                                 }}
                                             >
-                                                {/* BASIC TAB - Natal, Basic & Destiny Grids */}
+                                                {/* BASIC TAB - Combined Grid */}
                                                 <Tab key="basic-grids" title="Basic">
                                                     <div className="mt-4">
                                                         {/* Unified Legend */}
-                                                        <GridLegend sources={['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'] as DigitSource[]} compact />
+                                                        <GridLegend sources={['natal', 'root', 'destiny'] as DigitSource[]} compact />
 
-                                                        {/* Three grids in a row */}
-                                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                            <div className="flex flex-col items-center">
-                                                                <LoShuGridComponent
-                                                                    grid={calculateNatalGrid(profile.date_of_birth)}
-                                                                    title="Natal Grid"
-                                                                />
-                                                                <p className="text-center text-xs text-default-500 mt-2">
-                                                                    Birth date digits
-                                                                </p>
-                                                            </div>
-                                                            <div className="flex flex-col items-center">
-                                                                <LoShuGridComponent
-                                                                    grid={calculateBasicGrid(
-                                                                        profile.date_of_birth,
-                                                                        basicInfo.root_number || 1
-                                                                    )}
-                                                                    title="Basic Grid"
-                                                                />
-                                                                <p className="text-center text-xs text-default-500 mt-2">
-                                                                    Natal + Root Number
-                                                                </p>
-                                                            </div>
+                                                        {/* Single Combined Grid */}
+                                                        <div className="mt-6 flex justify-center">
                                                             <div className="flex flex-col items-center">
                                                                 <LoShuGridComponent
                                                                     grid={calculateDestinyGrid(
@@ -1696,10 +1675,10 @@ export default function MePage() {
                                                                         basicInfo.root_number || 1,
                                                                         basicInfo.destiny_number || 1
                                                                     )}
-                                                                    title="Destiny Grid"
+                                                                    title="Basic Grid"
                                                                 />
-                                                                <p className="text-center text-xs text-default-500 mt-2">
-                                                                    Basic + Destiny Number
+                                                                <p className="text-center text-sm text-default-500 mt-3 max-w-md">
+                                                                    Shows your natal digits (birth date), root number, and destiny number all in one grid
                                                                 </p>
                                                             </div>
                                                         </div>
