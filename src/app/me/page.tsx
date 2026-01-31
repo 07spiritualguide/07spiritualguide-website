@@ -918,10 +918,11 @@ export default function MePage() {
                                             <p className="text-sm text-default-500">Lord</p>
                                             <p className="text-lg">{basicInfo?.lord ?? <span className="text-default-400">Coming soon</span>}</p>
                                         </div>
-                                        <div>
+                                        {/* NOTE: Lucky Number commented out - we don't have a lucky number */}
+                                        {/* <div>
                                             <p className="text-sm text-default-500">Lucky Number</p>
                                             <p className="text-lg">{basicInfo?.lucky_number ?? <span className="text-default-400">Coming soon</span>}</p>
-                                        </div>
+                                        </div> */}
                                         <div>
                                             <p className="text-sm text-default-500">Zodiac Sign</p>
                                             <p className="text-lg">{basicInfo?.zodiac_sign ?? <span className="text-default-400">Coming soon</span>}</p>
