@@ -27,8 +27,8 @@ export default function RootLayout({
   const themeScript = `
     (function() {
       try {
-        var destiny = localStorage.getItem('destiny_number');
-        if (destiny) {
+        var rootNum = localStorage.getItem('root_number');
+        if (rootNum) {
           var themes = {
             1: { bg: '#FEF5C3', card: '#FFFEF5', accent: '#D4A017', primary: '#FFE44E', tabList: '#FFF4B8', gridBorder: '#FFF4B8', gridBg: '#FFFADB' },
             2: { bg: '#E2FF90', card: '#F5FFF0', accent: '#4CAF50', primary: '#BCFF00', tabList: '#DFFF84', gridBorder: '#E6FFA1', gridBg: '#F1FFCA' },
@@ -40,16 +40,16 @@ export default function RootLayout({
             8: { bg: '#E6D1A2', card: '#FFF8F0', accent: '#795548', primary: '#FBB821', tabList: '#E2CC9D', gridBorder: '#FFEFCC', gridBg: '#FFF6E3' },
             9: { bg: '#FFC2C3', card: '#FFF5F5', accent: '#F44336', primary: '#FF4E51', tabList: '#FFBDBE', gridBorder: '#FFE2E2', gridBg: '#FFF5F5' }
           };
-          var num = parseInt(destiny, 10);
+          var num = parseInt(rootNum, 10);
           var theme = themes[num];
           if (theme) {
-            document.documentElement.style.setProperty('--destiny-bg', theme.bg);
-            document.documentElement.style.setProperty('--destiny-card', theme.card);
-            document.documentElement.style.setProperty('--destiny-accent', theme.accent);
-            document.documentElement.style.setProperty('--destiny-primary', theme.primary);
-            document.documentElement.style.setProperty('--destiny-tablist', theme.tabList);
-            document.documentElement.style.setProperty('--destiny-grid-border', theme.gridBorder);
-            document.documentElement.style.setProperty('--destiny-grid-bg', theme.gridBg);
+            document.documentElement.style.setProperty('--root-bg', theme.bg);
+            document.documentElement.style.setProperty('--root-card', theme.card);
+            document.documentElement.style.setProperty('--root-accent', theme.accent);
+            document.documentElement.style.setProperty('--root-primary', theme.primary);
+            document.documentElement.style.setProperty('--root-tablist', theme.tabList);
+            document.documentElement.style.setProperty('--root-grid-border', theme.gridBorder);
+            document.documentElement.style.setProperty('--root-grid-bg', theme.gridBg);
           }
         }
       } catch (e) {}

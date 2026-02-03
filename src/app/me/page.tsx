@@ -139,8 +139,8 @@ export default function MePage() {
     const [selectedPersonalYearStart, setSelectedPersonalYearStart] = useState<number>(new Date().getFullYear());
     const [isTrialExpired, setIsTrialExpired] = useState(false);
 
-    // Destiny number to theme color mapping
-    const DESTINY_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; tabList: string; gridBorder: string; gridBg: string }> = {
+    // Root number to theme color mapping
+    const ROOT_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; tabList: string; gridBorder: string; gridBg: string }> = {
         1: { bg: '#FEF5C3', card: '#FFFEF5', accent: '#D4A017', primary: '#FFE44E', tabList: '#FFF4B8', gridBorder: '#FFF4B8', gridBg: '#FFFADB' },
         2: { bg: '#E2FF90', card: '#F5FFF0', accent: '#4CAF50', primary: '#BCFF00', tabList: '#DFFF84', gridBorder: '#E6FFA1', gridBg: '#F1FFCA' },
         3: { bg: '#FEE5F3', card: '#FFF5FB', accent: '#E91E63', primary: '#FF77C3', tabList: '#FFE0F2', gridBorder: '#FFE0F2', gridBg: '#FFECF7' },
@@ -187,34 +187,34 @@ export default function MePage() {
         };
     }, [session]);
 
-    // Set theme colors based on destiny number
+    // Set theme colors based on root number
     useEffect(() => {
-        if (basicInfo?.destiny_number) {
-            // Cache destiny number for next page load
-            localStorage.setItem('destiny_number', String(basicInfo.destiny_number));
+        if (basicInfo?.root_number) {
+            // Cache root number for next page load
+            localStorage.setItem('root_number', String(basicInfo.root_number));
 
-            const theme = DESTINY_THEME[basicInfo.destiny_number];
+            const theme = ROOT_THEME[basicInfo.root_number];
             if (theme) {
                 // Use CSS variable for background (set by inline script or here)
-                document.documentElement.style.setProperty('--destiny-bg', theme.bg);
-                document.documentElement.style.setProperty('--destiny-card', theme.card);
-                document.documentElement.style.setProperty('--destiny-accent', theme.accent);
-                document.documentElement.style.setProperty('--destiny-primary', theme.primary);
-                document.documentElement.style.setProperty('--destiny-tablist', theme.tabList);
-                document.documentElement.style.setProperty('--destiny-grid-border', theme.gridBorder);
-                document.documentElement.style.setProperty('--destiny-grid-bg', theme.gridBg);
+                document.documentElement.style.setProperty('--root-bg', theme.bg);
+                document.documentElement.style.setProperty('--root-card', theme.card);
+                document.documentElement.style.setProperty('--root-accent', theme.accent);
+                document.documentElement.style.setProperty('--root-primary', theme.primary);
+                document.documentElement.style.setProperty('--root-tablist', theme.tabList);
+                document.documentElement.style.setProperty('--root-grid-border', theme.gridBorder);
+                document.documentElement.style.setProperty('--root-grid-bg', theme.gridBg);
             }
         }
         return () => {
-            document.documentElement.style.removeProperty('--destiny-bg');
-            document.documentElement.style.removeProperty('--destiny-card');
-            document.documentElement.style.removeProperty('--destiny-accent');
-            document.documentElement.style.removeProperty('--destiny-primary');
-            document.documentElement.style.removeProperty('--destiny-tablist');
-            document.documentElement.style.removeProperty('--destiny-grid-border');
-            document.documentElement.style.removeProperty('--destiny-grid-bg');
+            document.documentElement.style.removeProperty('--root-bg');
+            document.documentElement.style.removeProperty('--root-card');
+            document.documentElement.style.removeProperty('--root-accent');
+            document.documentElement.style.removeProperty('--root-primary');
+            document.documentElement.style.removeProperty('--root-tablist');
+            document.documentElement.style.removeProperty('--root-grid-border');
+            document.documentElement.style.removeProperty('--root-grid-bg');
         };
-    }, [basicInfo?.destiny_number]);
+    }, [basicInfo?.root_number]);
 
     const checkAuth = async () => {
         const studentSession = getStudentSession();

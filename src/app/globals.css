@@ -97,17 +97,17 @@
 }
 
 body {
-  background: var(--destiny-bg, var(--background));
+  background: var(--root-bg, var(--background));
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Destiny theme tab list background */
+/* Root theme tab list background */
 [data-slot="tabList"] {
-  background-color: var(--destiny-tablist, transparent) !important;
+  background-color: var(--root-tablist, transparent) !important;
 }
 
-/* Destiny theme button text color */
-button[style*="--destiny-primary"] {
+/* Root theme button text color */
+button[style*="--root-primary"] {
   color: var(--foreground) !important;
 }

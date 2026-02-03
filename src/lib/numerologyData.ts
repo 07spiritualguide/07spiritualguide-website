@@ -1,5 +1,5 @@
 /**
- * Numerology data based on Destiny Number (1-9)
+ * Numerology data based on Root Number (1-9)
  * Contains Lord, Zodiac, Traits, Lucky elements, Professions
  */
 
@@ -307,8 +307,8 @@ export const NUMEROLOGY_DATA: { [key: number]: NumerologyData } = {
 };
 
 /**
- * Get numerology data for a destiny number
+ * Get numerology data for a root number
  */
-export function getNumerologyDataForDestiny(destinyNumber: number): NumerologyData | null {
-    return NUMEROLOGY_DATA[destinyNumber] || null;
+export function getNumerologyDataForRoot(rootNumber: number): NumerologyData | null {
+    return NUMEROLOGY_DATA[rootNumber] || null;
 }

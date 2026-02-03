@@ -6,7 +6,7 @@ import { Button, Input, Card, CardBody, CardHeader, Select, SelectItem, Spinner 
 import { supabase } from '@/lib/supabase';
 import { getStudentSession, setStudentSession, getSessionToken } from '@/lib/auth';
 import { calculateNumerology } from '@/lib/numerology';
-import { getNumerologyDataForDestiny } from '@/lib/numerologyData';
+import { getNumerologyDataForRoot } from '@/lib/numerologyData';
 import { extractFirstLastName, calculateNameNumber } from '@/lib/name-numerology';
 import StudentNavbar from '@/components/StudentNavbar';
 
@@ -68,7 +68,7 @@ export default function DetailsPage() {
             // Calculate numerology from DOB
             const dob = new Date(dateOfBirth);
             const numerology = calculateNumerology(dob);
-            const destinyData = getNumerologyDataForDestiny(numerology.destinyNumber);
+            const rootData = getNumerologyDataForRoot(numerology.rootNumber);
 
             // Extract first and last name from full name
             const { firstName, lastName } = extractFirstLastName(fullName);
@@ -81,16 +81,16 @@ export default function DetailsPage() {
                 root_number: numerology.rootNumber,
                 supportive_numbers: numerology.supportiveNumbers.map(String),
                 destiny_number: numerology.destinyNumber,
-                lord: destinyData?.lord || null,
-                zodiac_sign: destinyData?.zodiac_sign || null,
-                positive_traits: destinyData?.positive_traits || null,
-                negative_traits: destinyData?.negative_traits || null,
-                lucky_dates: destinyData?.lucky_dates || null,
-                favorable_days: destinyData?.favorable_days || null,
-                lucky_color: destinyData?.lucky_color || null,
-                lucky_direction: destinyData?.lucky_direction || null,
-                favorable_alphabets: destinyData?.favorable_alphabets || null,
-                favourable_profession: destinyData?.favourable_profession || null,
+                lord: rootData?.lord || null,
+                zodiac_sign: rootData?.zodiac_sign || null,
+                positive_traits: rootData?.positive_traits || null,
+                negative_traits: rootData?.negative_traits || null,
+                lucky_dates: rootData?.lucky_dates || null,
+                favorable_days: rootData?.favorable_days || null,
+                lucky_color: rootData?.lucky_color || null,
+                lucky_direction: rootData?.lucky_direction || null,
+                favorable_alphabets: rootData?.favorable_alphabets || null,
+                favourable_profession: rootData?.favourable_profession || null,
                 first_name: firstName,
                 last_name: lastName,
                 name_number: nameNumber,

@@ -48,7 +48,7 @@ export default function LoShuGridComponent({ grid, title, compact = false }: LoS
             )}
             <div
                 className="grid grid-cols-3 gap-0.5 p-0.5 rounded-lg"
-                style={{ backgroundColor: 'var(--destiny-grid-border, #e4e4e7)' }}
+                style={{ backgroundColor: 'var(--root-grid-border, #e4e4e7)' }}
             >
                 {grid.map((cell, idx) => (
                     <div
@@ -63,7 +63,7 @@ export default function LoShuGridComponent({ grid, title, compact = false }: LoS
                             ${idx === 6 ? 'rounded-bl-md' : ''}
                             ${idx === 8 ? 'rounded-br-md' : ''}
                         `}
-                        style={{ backgroundColor: 'var(--destiny-grid-bg, #f4f4f5)' }}
+                        style={{ backgroundColor: 'var(--root-grid-bg, #f4f4f5)' }}
                     >
                         {renderCellContent(cell)}
                     </div>

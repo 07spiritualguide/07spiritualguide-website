@@ -38,8 +38,8 @@ interface UserContext {
     pratyantardasha: any;
 }
 
-// Destiny theme colors
-const DESTINY_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; gridBg: string; gridBorder: string }> = {
+// Root theme colors
+const ROOT_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; gridBg: string; gridBorder: string }> = {
     1: { bg: '#FEF5C3', card: '#FFFEF5', accent: '#D4A017', primary: '#FFE44E', gridBg: '#FFFADB', gridBorder: '#FFF4B8' },
     2: { bg: '#E2FF90', card: '#F5FFF0', accent: '#4CAF50', primary: '#BCFF00', gridBg: '#F1FFCA', gridBorder: '#E6FFA1' },
     3: { bg: '#FEE5F3', card: '#FFF5FB', accent: '#E91E63', primary: '#FF77C3', gridBg: '#FFECF7', gridBorder: '#FFE0F2' },
@@ -64,18 +64,18 @@ export default function NumeroAIChatPage() {
     const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
     const [userContext, setUserContext] = useState<UserContext | null>(null);
     const [dailyCount, setDailyCount] = useState(0);
-    const [destinyNumber, setDestinyNumber] = useState<number>(1);
+    const [rootNumber, setRootNumber] = useState<number>(1);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const theme = DESTINY_THEME[destinyNumber] || DESTINY_THEME[1];
+    const theme = ROOT_THEME[rootNumber] || ROOT_THEME[1];
 
     // Apply cached theme immediately on mount to prevent flash
     useEffect(() => {
-        const cachedDestiny = localStorage.getItem('destiny_number');
-        if (cachedDestiny) {
-            const num = parseInt(cachedDestiny, 10);
-            if (DESTINY_THEME[num]) {
-                setDestinyNumber(num);
+        const cachedRootNum = localStorage.getItem('root_number');
+        if (cachedRootNum) {
+            const num = parseInt(cachedRootNum, 10);
+            if (ROOT_THEME[num]) {
+                setRootNumber(num);
             }
         }
     }, []);
@@ -121,8 +121,8 @@ export default function NumeroAIChatPage() {
             .eq('student_id', session.id)
             .maybeSingle();
 
-        if (basicInfo?.destiny_number) {
-            setDestinyNumber(basicInfo.destiny_number);
+        if (basicInfo?.root_number) {
+            setRootNumber(basicInfo.root_number);
         }
 
         const { data: mahadasha } = await supabase
