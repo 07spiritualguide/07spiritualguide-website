@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardBody, Spinner, Tabs, Tab, Chip, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, ButtonGroup, Select, SelectItem } from '@heroui/react';
 import { supabase } from '@/lib/supabase';
 import { getStudentSession, StudentSession } from '@/lib/auth';
+import { useStudentData } from '@/context/StudentDataContext';
 import { calculateMahadasha, MahadashaEntry, isCurrentMahadasha } from '@/lib/mahadasha';
 import { calculateAntardasha, AntardashaEntry, isCurrentAntardasha } from '@/lib/antardasha';
 import { calculatePratyantardasha, YearPratyantardasha, isCurrentPratyantardasha } from '@/lib/pratyantardasha';
@@ -122,12 +123,28 @@ function getColorHex(colorName: string): string {
 
 export default function MePage() {
     const router = useRouter();
-    const [session, setSession] = useState<StudentSession | null>(null);
-    const [profile, setProfile] = useState<StudentProfile | null>(null);
-    const [basicInfo, setBasicInfo] = useState<BasicInfo | null>(null);
-    const [mahadashaTimeline, setMahadashaTimeline] = useState<MahadashaEntry[] | null>(null);
-    const [antardashaTimeline, setAntardashaTimeline] = useState<AntardashaEntry[] | null>(null);
-    const [pratyantardashaTimeline, setPratyantardashaTimeline] = useState<YearPratyantardasha[] | null>(null);
+
+    // Get cached data from context
+    const {
+        data: cachedData,
+        loading: contextLoading,
+        fetchData,
+        setMahadashaTimeline: setCachedMahadasha,
+        setAntardashaTimeline: setCachedAntardasha,
+        setPratyantardashaTimeline: setCachedPratyantardasha,
+        setIsTrialExpired: setCachedTrialExpired,
+    } = useStudentData();
+
+    // Use context data or local state as fallback during initial load
+    const session = cachedData.session;
+    const profile = cachedData.profile;
+    const basicInfo = cachedData.basicInfo;
+    const mahadashaTimeline = cachedData.mahadashaTimeline;
+    const antardashaTimeline = cachedData.antardashaTimeline;
+    const pratyantardashaTimeline = cachedData.pratyantardashaTimeline;
+    const isTrialExpired = cachedData.isTrialExpired;
+
+    // Local UI state (not cached)
     const [selectedPratyantarYear, setSelectedPratyantarYear] = useState<number>(new Date().getFullYear());
     const [selectedDailyDate, setSelectedDailyDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(true);
@@ -138,7 +155,6 @@ export default function MePage() {
     const [selectedGridTab, setSelectedGridTab] = useState('basic-grids');
     const [selectedMonthlyYear, setSelectedMonthlyYear] = useState<number>(new Date().getFullYear());
     const [selectedPersonalYearStart, setSelectedPersonalYearStart] = useState<number>(new Date().getFullYear());
-    const [isTrialExpired, setIsTrialExpired] = useState(false);
 
     // Root number to theme color mapping
     const ROOT_THEME: Record<number, { bg: string; card: string; accent: string; primary: string; tabList: string; gridBorder: string; gridBg: string }> = {
@@ -153,10 +169,44 @@ export default function MePage() {
         9: { bg: '#FFC2C3', card: '#FFF5F5', accent: '#F44336', primary: '#FF4E51', tabList: '#FFBDBE', gridBorder: '#FFE2E2', gridBg: '#FFF5F5' },
     };
 
-
+    // Check auth and fetch data from context
     useEffect(() => {
+        const checkAuth = async () => {
+            const studentSession = getStudentSession();
+            if (!studentSession) {
+                router.push('/login');
+                return;
+            }
+
+            // If data is already cached, just verify profile is complete
+            if (cachedData.session && cachedData.profile) {
+                setLoading(false);
+                return;
+            }
+
+            // Otherwise fetch data via context
+            await fetchData();
+
+            // Check if profile is complete after fetch
+            if (!cachedData.profile) {
+                // Do a quick check for profile_complete
+                const { data: student } = await supabase
+                    .from('students')
+                    .select('profile_complete')
+                    .eq('id', studentSession.id)
+                    .single();
+
+                if (!student?.profile_complete) {
+                    router.push('/details');
+                    return;
+                }
+            }
+
+            setLoading(false);
+        };
+
         checkAuth();
-    }, []);
+    }, [cachedData.session, cachedData.profile, fetchData, router]);
 
     // Check trial expiry - fetch fresh data from database
     useEffect(() => {
@@ -171,10 +221,10 @@ export default function MePage() {
                 .single();
 
             if (data?.trial_ends_at && new Date(data.trial_ends_at) < new Date()) {
-                setIsTrialExpired(true);
+                setCachedTrialExpired(true);
                 document.body.style.overflow = 'hidden';
             } else {
-                setIsTrialExpired(false);
+                setCachedTrialExpired(false);
                 document.body.style.overflow = '';
             }
         };
@@ -186,7 +236,7 @@ export default function MePage() {
             clearInterval(interval);
             document.body.style.overflow = '';
         };
-    }, [session]);
+    }, [session, setCachedTrialExpired]);
 
     // Set theme colors based on root number
     useEffect(() => {
@@ -216,106 +266,6 @@ export default function MePage() {
             document.documentElement.style.removeProperty('--root-grid-bg');
         };
     }, [basicInfo?.root_number]);
-
-    const checkAuth = async () => {
-        const studentSession = getStudentSession();
-        if (!studentSession) {
-            router.push('/login');
-            return;
-        }
-        setSession(studentSession);
-
-        // Fetch profile data
-        const { data: student } = await supabase
-            .from('students')
-            .select('full_name, date_of_birth, gender, profile_complete')
-            .eq('id', studentSession.id)
-            .single();
-
-        if (!student?.profile_complete) {
-            router.push('/details');
-            return;
-        }
-
-        setProfile({
-            full_name: student.full_name,
-            date_of_birth: student.date_of_birth,
-            gender: student.gender,
-        });
-
-        // Fetch basic_info data
-        const { data: info } = await supabase
-            .from('basic_info')
-            .select('*')
-            .eq('student_id', studentSession.id)
-            .single();
-
-        if (info) {
-            setBasicInfo(info);
-
-            // Check if name numerology is missing for existing users
-            if (!info.first_name || !info.name_number) {
-                // Calculate name numerology from full_name
-                const { firstName, middleName, lastName } = extractNameParts(student.full_name);
-                const nameNumber = calculateNameNumber(firstName, middleName, lastName);
-
-                // Update basic_info with name numerology
-                await supabase
-                    .from('basic_info')
-                    .update({
-                        first_name: firstName,
-                        middle_name: middleName || null,
-                        last_name: lastName,
-                        name_number: nameNumber,
-                    })
-                    .eq('student_id', studentSession.id);
-
-                // Update local state
-                setBasicInfo({
-                    ...info,
-                    first_name: firstName,
-                    middle_name: middleName || null,
-                    last_name: lastName,
-                    name_number: nameNumber,
-                });
-            }
-        }
-
-        // Fetch mahadasha data
-        const { data: mahadasha } = await supabase
-            .from('mahadasha')
-            .select('timeline')
-            .eq('student_id', studentSession.id)
-            .maybeSingle();
-
-        if (mahadasha?.timeline) {
-            setMahadashaTimeline(mahadasha.timeline as MahadashaEntry[]);
-        }
-
-        // Fetch antardasha data
-        const { data: antardasha } = await supabase
-            .from('antardasha')
-            .select('timeline')
-            .eq('student_id', studentSession.id)
-            .maybeSingle();
-
-        if (antardasha?.timeline) {
-            setAntardashaTimeline(antardasha.timeline as AntardashaEntry[]);
-        }
-
-        // Fetch pratyantardasha data
-        const { data: pratyantardasha } = await supabase
-            .from('pratyantardasha')
-            .select('timeline')
-            .eq('student_id', studentSession.id)
-            .maybeSingle();
-
-        if (pratyantardasha?.timeline) {
-            setPratyantardashaTimeline(pratyantardasha.timeline as YearPratyantardasha[]);
-        }
-
-        setLoading(false);
-    };
 
     const handleCalculateMahadasha = async () => {
         if (!profile || !basicInfo?.root_number || !session) return;
@@ -359,7 +309,7 @@ export default function MePage() {
             }
 
             if (!error) {
-                setMahadashaTimeline(timeline);
+                setCachedMahadasha(timeline);
             } else {
                 console.error('Mahadasha save error:', error);
             }
@@ -472,7 +422,7 @@ export default function MePage() {
             }
 
             if (!error) {
-                setAntardashaTimeline(timeline);
+                setCachedAntardasha(timeline);
             } else {
                 console.error('Antardasha save error:', error);
             }
@@ -523,7 +473,7 @@ export default function MePage() {
             }
 
             if (!error) {
-                setPratyantardashaTimeline(timeline);
+                setCachedPratyantardasha(timeline);
             } else {
                 console.error('Pratyantardasha save error:', error);
             }
@@ -851,7 +801,7 @@ export default function MePage() {
                         selectedKey={selectedTab}
                         onSelectionChange={(key) => setSelectedTab(key as string)}
                         aria-label="Profile sections"
-                        className="mb-4 md:mb-6"
+                        className="mb-0 md:mb-0"
                         classNames={{
                             tabList: "overflow-x-auto flex-nowrap scrollbar-hide",
                             tab: "min-w-fit px-3 text-sm md:text-base whitespace-nowrap",
@@ -859,7 +809,7 @@ export default function MePage() {
                         }}
                     >
                         <Tab key="basic" title="Basic Info">
-                            <Card className="mt-3 md:mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Basic Information</h2>
 
@@ -1121,7 +1071,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="mahadasha" title="Mahadasha">
-                            <Card className="mt-3 md:mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Mahadasha</h2>
 
@@ -1216,7 +1166,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="antar-dasha" title="Antar Dasha">
-                            <Card className="mt-3 md:mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Antar Dasha</h2>
 
@@ -1309,7 +1259,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="pratyantar-dasha" title="Pratyantar Dasha">
-                            <Card className="mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Pratyantar Dasha</h2>
 
@@ -1445,7 +1395,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="daily-dasha" title="Daily Dasha">
-                            <Card className="mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Daily Dasha</h2>
 
@@ -1538,7 +1488,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="hourly-dasha" title="Hourly Dasha">
-                            <Card className="mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Hourly Dasha</h2>
 
@@ -1662,7 +1612,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="grids" title="Grids">
-                            <Card className="mt-3 md:mt-4" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Grids</h2>
 
@@ -1679,7 +1629,7 @@ export default function MePage() {
                                                 selectedKey={selectedGridTab}
                                                 onSelectionChange={(key) => setSelectedGridTab(key as string)}
                                                 aria-label="Grid types"
-                                                className="mb-4"
+                                                className="mb-0"
                                                 size="sm"
                                                 classNames={{
                                                     tabList: "overflow-x-auto flex-nowrap scrollbar-hide",
@@ -1689,7 +1639,7 @@ export default function MePage() {
                                             >
                                                 {/* BASIC TAB - Combined Grid */}
                                                 <Tab key="basic-grids" title="Basic">
-                                                    <div className="mt-4">
+                                                    <div className="mt-0">
                                                         {/* Unified Legend */}
                                                         <GridLegend sources={['natal', 'root', 'destiny'] as DigitSource[]} compact />
 
@@ -1714,7 +1664,7 @@ export default function MePage() {
 
                                                 {/* MAHADASHA GRID */}
                                                 <Tab key="mahadasha-grid" title="Mahadasha">
-                                                    <div className="mt-4">
+                                                    <div className="mt-0">
                                                         {!mahadashaTimeline ? (
                                                             <div className="text-center py-4">
                                                                 <p className="text-default-500 mb-4">
@@ -1753,7 +1703,7 @@ export default function MePage() {
 
                                                 {/* PERSONAL YEAR GRIDS */}
                                                 <Tab key="personal-year" title="Personal Year">
-                                                    <div className="mt-4">
+                                                    <div className="mt-0">
                                                         {!mahadashaTimeline || !antardashaTimeline ? (
                                                             <div className="text-center py-4">
                                                                 <p className="text-default-500 mb-4">
@@ -1825,7 +1775,7 @@ export default function MePage() {
 
                                                 {/* MONTHLY GRIDS */}
                                                 <Tab key="monthly" title="Monthly">
-                                                    <div className="mt-4">
+                                                    <div className="mt-0">
                                                         {!mahadashaTimeline || !antardashaTimeline || !pratyantardashaTimeline ? (
                                                             <div className="text-center py-4">
                                                                 <p className="text-default-500 mb-4">

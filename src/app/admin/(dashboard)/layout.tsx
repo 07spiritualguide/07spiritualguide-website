@@ -21,6 +21,18 @@ export default function AdminDashboardLayout({
         checkAuth();
     }, []);
 
+    // Clear destiny theme CSS variables on mount to prevent theme bleeding from /me pages
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.removeProperty('--root-bg');
+        root.style.removeProperty('--root-card');
+        root.style.removeProperty('--root-accent');
+        root.style.removeProperty('--root-primary');
+        root.style.removeProperty('--root-tablist');
+        root.style.removeProperty('--root-grid-border');
+        root.style.removeProperty('--root-grid-bg');
+    }, []);
+
     // Close sidebar on route change (mobile)
     useEffect(() => {
         setSidebarOpen(false);
@@ -65,6 +77,7 @@ export default function AdminDashboardLayout({
 
     const navItems = [
         { name: 'Manage Students', href: '/admin/students' },
+        { name: 'Calculator', href: '/admin/calculator' },
     ];
 
     return (

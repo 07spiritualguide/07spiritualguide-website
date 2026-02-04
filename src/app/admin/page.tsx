@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Card, CardBody, CardHeader } from '@heroui/react';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,18 @@ export default function AdminLoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Clear destiny theme CSS variables on mount to prevent theme bleeding from /me pages
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.removeProperty('--root-bg');
+        root.style.removeProperty('--root-card');
+        root.style.removeProperty('--root-accent');
+        root.style.removeProperty('--root-primary');
+        root.style.removeProperty('--root-tablist');
+        root.style.removeProperty('--root-grid-border');
+        root.style.removeProperty('--root-grid-bg');
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
