@@ -321,41 +321,78 @@ export default function MePage() {
         }
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         if (!mahadashaTimeline || !profile) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const { addBranding, addSectionHeader, addFooter, COLORS } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
 
-        doc.setFontSize(20);
-        doc.text('Mahadasha Timeline', 14, 20);
+        // Branding header
+        let y = await addBranding(doc);
 
-        doc.setFontSize(12);
-        doc.text(`Name: ${profile.full_name}`, 14, 32);
-        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
+        // Name and DOB
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
 
-        const tableData = mahadashaTimeline.map((entry) => {
-            const isCurrent = isCurrentMahadasha(entry);
-            return [
-                entry.fromDate + (isCurrent ? ' ✨' : ''),
-                entry.toDate,
-                entry.number.toString()
-            ];
-        });
+        // Section header
+        y = addSectionHeader(doc, 'Mahadasha Timeline (9-Year Periods)', y);
 
+        // Find current period
+        const currentEntry = mahadashaTimeline.find(e => isCurrentMahadasha(e));
+        if (currentEntry) {
+            doc.setFontSize(9);
+            doc.setTextColor(0, 111, 238);
+            doc.text(`Current Period: ${currentEntry.fromDate} - ${currentEntry.toDate} (Number ${currentEntry.number})`, 18, y);
+            y += 8;
+        }
+
+        // Table
         autoTable(doc, {
-            startY: 50,
-            head: [['From Date', 'To Date', 'Number']],
-            body: tableData,
+            startY: y,
+            head: [['#', 'From Date', 'To Date', 'Number']],
+            body: mahadashaTimeline.map((entry, idx) => [
+                idx + 1,
+                entry.fromDate,
+                entry.toDate,
+                entry.number
+            ]),
+            theme: 'grid',
+            headStyles: {
+                fillColor: [0, 111, 238],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+            },
+            bodyStyles: {
+                fontSize: 9,
+            },
+            alternateRowStyles: {
+                fillColor: [250, 250, 250],
+            },
             didParseCell: (data) => {
-                const cellText = data.cell.raw?.toString() || '';
-                if (cellText.includes('✨')) {
-                    data.cell.styles.fontStyle = 'bold';
-                    data.cell.styles.textColor = [0, 112, 243];
+                if (data.section === 'body') {
+                    const rowIdx = data.row.index;
+                    if (mahadashaTimeline[rowIdx] && isCurrentMahadasha(mahadashaTimeline[rowIdx])) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [0, 111, 238];
+                    }
                 }
-            }
+            },
+            margin: { left: 14, right: 14 },
         });
 
-        doc.save(`mahadasha_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        addFooter(doc);
+
+        doc.save(`numerosense-mahadasha-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadCSV = () => {
@@ -484,41 +521,68 @@ export default function MePage() {
         }
     };
 
-    const handleDownloadAntardashaPDF = () => {
+    const handleDownloadAntardashaPDF = async () => {
         if (!antardashaTimeline || !profile) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const { addBranding, addSectionHeader, addFooter } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
 
-        doc.setFontSize(20);
-        doc.text('Antardasha Timeline', 14, 20);
+        let y = await addBranding(doc);
 
-        doc.setFontSize(12);
-        doc.text(`Name: ${profile.full_name}`, 14, 32);
-        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
 
-        const tableData = antardashaTimeline.map((entry) => {
-            const isCurrent = isCurrentAntardasha(entry);
-            return [
-                entry.fromDate + (isCurrent ? ' ✨' : ''),
-                entry.toDate,
-                entry.antardasha.toString()
-            ];
-        });
+        y = addSectionHeader(doc, 'Antardasha Timeline (Sub-Periods)', y, [120, 40, 200]);
+
+        const currentEntry = antardashaTimeline.find(e => isCurrentAntardasha(e));
+        if (currentEntry) {
+            doc.setFontSize(9);
+            doc.setTextColor(120, 40, 200);
+            doc.text(`Current: ${currentEntry.fromDate} - ${currentEntry.toDate} (Number ${currentEntry.antardasha})`, 18, y);
+            y += 8;
+        }
 
         autoTable(doc, {
-            startY: 50,
-            head: [['From Date', 'To Date', 'Number']],
-            body: tableData,
+            startY: y,
+            head: [['#', 'From Date', 'To Date', 'Number']],
+            body: antardashaTimeline.map((entry, idx) => [
+                idx + 1,
+                entry.fromDate,
+                entry.toDate,
+                entry.antardasha
+            ]),
+            theme: 'grid',
+            headStyles: {
+                fillColor: [120, 40, 200],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+            },
+            bodyStyles: { fontSize: 9 },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
             didParseCell: (data) => {
-                const cellText = data.cell.raw?.toString() || '';
-                if (cellText.includes('✨')) {
-                    data.cell.styles.fontStyle = 'bold';
-                    data.cell.styles.textColor = [0, 112, 243];
+                if (data.section === 'body') {
+                    const rowIdx = data.row.index;
+                    if (antardashaTimeline[rowIdx] && isCurrentAntardasha(antardashaTimeline[rowIdx])) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [120, 40, 200];
+                    }
                 }
-            }
+            },
+            margin: { left: 14, right: 14 },
         });
 
-        doc.save(`antardasha_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        addFooter(doc);
+        doc.save(`numerosense-antardasha-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadAntardashaCSV = () => {
@@ -542,44 +606,67 @@ export default function MePage() {
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadPratyantardashaPDF = () => {
+    const handleDownloadPratyantardashaPDF = async () => {
         if (!pratyantardashaTimeline || !profile) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const { addBranding, addSectionHeader, addFooter } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
         const yearData = pratyantardashaTimeline.find(y => y.year === selectedPratyantarYear);
         if (!yearData) return;
 
-        doc.setFontSize(20);
-        doc.text(`Pratyantardasha Timeline - ${selectedPratyantarYear}`, 14, 20);
+        let y = await addBranding(doc);
 
-        doc.setFontSize(12);
-        doc.text(`Name: ${profile.full_name}`, 14, 32);
-        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
-        doc.text(`Year Period: ${yearData.fromDate} to ${yearData.toDate}`, 14, 48);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
 
-        const tableData = yearData.periods.map((period) => {
-            const isCurrent = isCurrentPratyantardasha(period);
-            return [
-                period.fromDate + (isCurrent ? ' ✨' : ''),
-                period.toDate,
-                period.pratyantardasha.toString()
-            ];
-        });
+        y = addSectionHeader(doc, `Pratyantardasha ${selectedPratyantarYear}`, y, [23, 201, 100]);
+
+        doc.setFontSize(9);
+        doc.setTextColor(23, 201, 100);
+        doc.text(`Year Period: ${yearData.fromDate} to ${yearData.toDate}`, 18, y);
+        y += 8;
 
         autoTable(doc, {
-            startY: 56,
-            head: [['From Date', 'To Date', 'Pratyantardasha']],
-            body: tableData,
+            startY: y,
+            head: [['#', 'From Date', 'To Date', 'Number']],
+            body: yearData.periods.map((period, idx) => [
+                idx + 1,
+                period.fromDate,
+                period.toDate,
+                period.pratyantardasha
+            ]),
+            theme: 'grid',
+            headStyles: {
+                fillColor: [23, 201, 100],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+            },
+            bodyStyles: { fontSize: 9 },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
             didParseCell: (data) => {
-                const cellText = data.cell.raw?.toString() || '';
-                if (cellText.includes('✨')) {
-                    data.cell.styles.fontStyle = 'bold';
-                    data.cell.styles.textColor = [0, 112, 243];
+                if (data.section === 'body') {
+                    const rowIdx = data.row.index;
+                    if (yearData.periods[rowIdx] && isCurrentPratyantardasha(yearData.periods[rowIdx])) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [23, 201, 100];
+                    }
                 }
-            }
+            },
+            margin: { left: 14, right: 14 },
         });
 
-        doc.save(`pratyantardasha_${selectedPratyantarYear}_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        addFooter(doc);
+        doc.save(`numerosense-pratyantardasha-${selectedPratyantarYear}-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadPratyantardashaCSV = () => {
@@ -606,48 +693,72 @@ export default function MePage() {
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadDailyDashaPDF = () => {
+    const handleDownloadDailyDashaPDF = async () => {
         if (!pratyantardashaTimeline || !profile) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const { addBranding, addSectionHeader, addFooter } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
         const today = new Date();
 
-        doc.setFontSize(20);
-        doc.text('Daily Dasha Timeline', 14, 20);
+        let y = await addBranding(doc);
 
-        doc.setFontSize(12);
-        doc.text(`Name: ${profile.full_name}`, 14, 32);
-        doc.text(`Date of Birth: ${formatDate(profile.date_of_birth)}`, 14, 40);
-        doc.text('Showing 60 days (20 past + 40 future)', 14, 48);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
 
-        const tableData: string[][] = [];
+        y = addSectionHeader(doc, 'Daily Dasha (60 Days)', y, [59, 130, 246]);
+        doc.setFontSize(9);
+        doc.setTextColor(59, 130, 246);
+        doc.text('Showing 20 past days + 40 future days', 18, y);
+        y += 8;
+
+        const tableData: (string | number)[][] = [];
         for (let i = -20; i <= 40; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
             if (!dailyResult) continue;
-            const isToday = i === 0;
             tableData.push([
-                formatDateForDisplay(date) + (isToday ? ' ✨' : ''),
+                i === 0 ? '→' : '',
+                formatDateForDisplay(date),
                 dailyResult.dayName,
-                dailyResult.dailyDasha.toString()
+                dailyResult.dailyDasha
             ]);
         }
 
         autoTable(doc, {
-            startY: 56,
-            head: [['Date', 'Day', 'Daily Dasha']],
+            startY: y,
+            head: [['', 'Date', 'Day', 'Daily Dasha']],
             body: tableData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [59, 130, 246],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8,
+            },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            columnStyles: { 0: { cellWidth: 8 } },
             didParseCell: (data) => {
-                const cellText = data.cell.raw?.toString() || '';
-                if (cellText.includes('✨')) {
+                if (data.section === 'body' && data.cell.raw === '→') {
                     data.cell.styles.fontStyle = 'bold';
-                    data.cell.styles.textColor = [0, 112, 243];
+                    data.cell.styles.textColor = [59, 130, 246];
                 }
-            }
+            },
+            margin: { left: 14, right: 14 },
         });
 
-        doc.save(`daily_dasha_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        addFooter(doc);
+        doc.save(`numerosense-daily-dasha-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadDailyDashaCSV = () => {
@@ -676,36 +787,62 @@ export default function MePage() {
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadHourlyDashaPDF = () => {
+    const handleDownloadHourlyDashaPDF = async () => {
         if (!pratyantardashaTimeline || !profile) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const { addBranding, addSectionHeader, addFooter } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
         const date = new Date(selectedDailyDate);
         const dailyResult = calculateDailyDasha(date, pratyantardashaTimeline);
         if (!dailyResult) return;
 
         const hourlyData = calculateAllHourlyDasha(dailyResult.dailyDasha);
 
-        doc.setFontSize(20);
-        doc.text('Hourly Dasha Timeline', 14, 20);
+        let y = await addBranding(doc);
 
-        doc.setFontSize(12);
-        doc.text(`Name: ${profile.full_name}`, 14, 32);
-        doc.text(`Date: ${formatDateForDisplay(date)} (${dailyResult.dayName})`, 14, 40);
-        doc.text(`Daily Dasha: ${dailyResult.dailyDasha}`, 14, 48);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
 
-        const tableData = hourlyData.map((item) => [
-            item.hour,
-            item.hourlyDasha.toString()
-        ]);
+        y = addSectionHeader(doc, `Hourly Dasha - ${formatDateForDisplay(date)}`, y, [245, 158, 11]);
 
+        doc.setFontSize(9);
+        doc.setTextColor(245, 158, 11);
+        doc.text(`${dailyResult.dayName} | Daily Dasha: ${dailyResult.dailyDasha}`, 18, y);
+        y += 8;
+
+        // Two-column layout for hourly data
         autoTable(doc, {
-            startY: 56,
-            head: [['Time', 'Hourly Dasha']],
-            body: tableData,
+            startY: y,
+            head: [['Time', 'Number', 'Time', 'Number']],
+            body: hourlyData.reduce((rows: (string | number)[][], h, i) => {
+                if (i % 2 === 0) {
+                    rows.push([h.hour, h.hourlyDasha, hourlyData[i + 1]?.hour || '', hourlyData[i + 1]?.hourlyDasha || '']);
+                }
+                return rows;
+            }, []),
+            theme: 'grid',
+            headStyles: {
+                fillColor: [245, 158, 11],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+            },
+            bodyStyles: { fontSize: 9 },
+            alternateRowStyles: { fillColor: [255, 251, 235] },
+            margin: { left: 14, right: 14 },
         });
 
-        doc.save(`hourly_dasha_${formatDateForDisplay(date).replace(/\s+/g, '_')}_${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        addFooter(doc);
+        doc.save(`numerosense-hourly-dasha-${formatDateForDisplay(date).replace(/\s+/g, '_')}-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadHourlyDashaCSV = () => {
@@ -731,6 +868,170 @@ export default function MePage() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadGridPDF = async () => {
+        if (!profile || !basicInfo) return;
+
+        const { jsPDF } = await import('jspdf');
+        const {
+            addBranding,
+            addSectionHeader,
+            addFooter,
+            drawLoShuGrid,
+            drawGridLegend
+        } = await import('@/lib/pdf-utils');
+
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const largeGridSize = 35;
+        const smallGridSize = 22;
+        const gridX = (pageWidth - largeGridSize * 3) / 2;
+
+        // Helper to add page with branding
+        const addNewPage = async (pageNum: number) => {
+            addFooter(doc, pageNum);
+            doc.addPage();
+            const y = await addBranding(doc);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(profile.full_name, pageWidth / 2, y + 3, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            return y + 12;
+        };
+
+        // === PAGE 1: Header + Basic Grid ===
+        let y = await addBranding(doc);
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(profile.full_name, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 25;
+
+        y = addSectionHeader(doc, 'Basic Grid', y);
+        y = drawGridLegend(doc, ['natal', 'root', 'destiny'], 20, y + 5);
+        y += 8;
+
+        const basicGrid = calculateDestinyGrid(
+            profile.date_of_birth,
+            basicInfo.root_number || 1,
+            basicInfo.destiny_number || 1
+        );
+        y = drawLoShuGrid(doc, basicGrid, gridX, y, undefined, largeGridSize);
+
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Shows your natal digits (birth date), root number, and destiny number', pageWidth / 2, y + 5, { align: 'center' });
+
+        // === PAGE 2: Mahadasha Grid ===
+        if (mahadashaTimeline) {
+            y = await addNewPage(1);
+
+            y = addSectionHeader(doc, 'Mahadasha Grid', y, [120, 40, 200]);
+            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha'], 20, y + 5);
+            y += 8;
+
+            const mahaGrid = calculateMahadashaGrid(
+                profile.date_of_birth,
+                basicInfo.root_number || 1,
+                basicInfo.destiny_number || 1,
+                mahadashaTimeline
+            );
+            y = drawLoShuGrid(doc, mahaGrid, gridX, y, undefined, largeGridSize);
+
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Shows your destiny + current Mahadasha period', pageWidth / 2, y + 5, { align: 'center' });
+        }
+
+        // === PAGE 3: Personal Year Grid ===
+        if (mahadashaTimeline && antardashaTimeline) {
+            y = await addNewPage(2);
+
+            const currentYear = new Date().getFullYear();
+            y = addSectionHeader(doc, `Personal Year Grid (${currentYear})`, y, [23, 201, 100]);
+            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha'], 20, y + 5);
+            y += 8;
+
+            const personalYearGrid = calculatePersonalYearGrid(
+                profile.date_of_birth,
+                basicInfo.root_number || 1,
+                basicInfo.destiny_number || 1,
+                currentYear,
+                mahadashaTimeline,
+                antardashaTimeline
+            );
+            y = drawLoShuGrid(doc, personalYearGrid, gridX, y, undefined, largeGridSize);
+
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Grid calculated for the year ${currentYear}`, pageWidth / 2, y + 5, { align: 'center' });
+        }
+
+        // === PAGE 4: Monthly Grids (Jan-Jun) ===
+        if (mahadashaTimeline && antardashaTimeline && pratyantardashaTimeline) {
+            const currentYear = new Date().getFullYear();
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const gridSpacing = 62;
+
+            // Page 4: Jan-Jun
+            y = await addNewPage(3);
+            y = addSectionHeader(doc, `Monthly Grids - ${currentYear} (Jan-Jun)`, y, [245, 158, 11]);
+            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'], 14, y + 5);
+            y += 10;
+
+            for (let i = 0; i < 6; i++) {
+                const col = i % 3;
+                const row = Math.floor(i / 3);
+                const gX = 14 + col * gridSpacing;
+                const gY = y + row * 75;
+
+                const monthlyGrid = calculateMonthlyGrid(
+                    profile.date_of_birth,
+                    basicInfo.root_number || 1,
+                    basicInfo.destiny_number || 1,
+                    currentYear,
+                    i,
+                    mahadashaTimeline,
+                    antardashaTimeline,
+                    pratyantardashaTimeline
+                );
+
+                drawLoShuGrid(doc, monthlyGrid, gX, gY, months[i], smallGridSize);
+            }
+
+            // Page 5: Jul-Dec
+            y = await addNewPage(4);
+            y = addSectionHeader(doc, `Monthly Grids - ${currentYear} (Jul-Dec)`, y, [245, 158, 11]);
+            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'], 14, y + 5);
+            y += 10;
+
+            for (let i = 6; i < 12; i++) {
+                const col = (i - 6) % 3;
+                const row = Math.floor((i - 6) / 3);
+                const gX = 14 + col * gridSpacing;
+                const gY = y + row * 75;
+
+                const monthlyGrid = calculateMonthlyGrid(
+                    profile.date_of_birth,
+                    basicInfo.root_number || 1,
+                    basicInfo.destiny_number || 1,
+                    currentYear,
+                    i,
+                    mahadashaTimeline,
+                    antardashaTimeline,
+                    pratyantardashaTimeline
+                );
+
+                drawLoShuGrid(doc, monthlyGrid, gX, gY, months[i], smallGridSize);
+            }
+        }
+
+        addFooter(doc, doc.internal.pages.length - 1);
+        doc.save(`numerosense-grids-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     if (loading) {
@@ -809,7 +1110,7 @@ export default function MePage() {
                         }}
                     >
                         <Tab key="basic" title="Basic Info">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Basic Information</h2>
 
@@ -1071,7 +1372,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="mahadasha" title="Mahadasha">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Mahadasha</h2>
 
@@ -1085,7 +1386,7 @@ export default function MePage() {
                                                 color="primary"
                                                 onPress={handleCalculateMahadasha}
                                                 isLoading={calculatingMahadasha}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 See my Mahadasha
                                             </Button>
@@ -1148,7 +1449,7 @@ export default function MePage() {
                                                 <Button
                                                     color="primary"
                                                     onPress={handleDownloadPDF}
-                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                 >
                                                     Download PDF
                                                 </Button>
@@ -1166,7 +1467,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="antar-dasha" title="Antar Dasha">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Antar Dasha</h2>
 
@@ -1179,7 +1480,7 @@ export default function MePage() {
                                                 color="primary"
                                                 onPress={handleCalculateAntardasha}
                                                 isLoading={calculatingAntardasha}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 See my Antardasha
                                             </Button>
@@ -1241,7 +1542,7 @@ export default function MePage() {
                                                 <Button
                                                     color="primary"
                                                     onPress={handleDownloadAntardashaPDF}
-                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                 >
                                                     Download PDF
                                                 </Button>
@@ -1259,7 +1560,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="pratyantar-dasha" title="Pratyantar Dasha">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Pratyantar Dasha</h2>
 
@@ -1271,7 +1572,7 @@ export default function MePage() {
                                             <Button
                                                 color="primary"
                                                 onPress={() => setSelectedTab('antar-dasha')}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 Go to Antar Dasha
                                             </Button>
@@ -1286,7 +1587,7 @@ export default function MePage() {
                                                 size="lg"
                                                 onPress={handleCalculatePratyantardasha}
                                                 isLoading={calculatingPratyantardasha}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 See my Pratyantardasha
                                             </Button>
@@ -1374,7 +1675,7 @@ export default function MePage() {
                                                             <Button
                                                                 color="primary"
                                                                 onPress={handleDownloadPratyantardashaPDF}
-                                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                                             >
                                                                 Download PDF
                                                             </Button>
@@ -1395,7 +1696,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="daily-dasha" title="Daily Dasha">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Daily Dasha</h2>
 
@@ -1407,7 +1708,7 @@ export default function MePage() {
                                             <Button
                                                 color="primary"
                                                 onPress={() => setSelectedTab('pratyantar-dasha')}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 Go to Pratyantar Dasha
                                             </Button>
@@ -1470,7 +1771,7 @@ export default function MePage() {
                                                 <Button
                                                     color="primary"
                                                     onPress={handleDownloadDailyDashaPDF}
-                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                 >
                                                     Download PDF
                                                 </Button>
@@ -1488,7 +1789,7 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="hourly-dasha" title="Hourly Dasha">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-semibold mb-4">Hourly Dasha</h2>
 
@@ -1500,7 +1801,7 @@ export default function MePage() {
                                             <Button
                                                 color="primary"
                                                 onPress={() => setSelectedTab('pratyantar-dasha')}
-                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                             >
                                                 Go to Pratyantar Dasha
                                             </Button>
@@ -1591,7 +1892,7 @@ export default function MePage() {
                                                             <Button
                                                                 color="primary"
                                                                 onPress={handleDownloadHourlyDashaPDF}
-                                                                style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                                style={{ backgroundColor: 'var(--root-primary)' }}
                                                             >
                                                                 Download PDF
                                                             </Button>
@@ -1612,9 +1913,19 @@ export default function MePage() {
                             </Card>
                         </Tab>
                         <Tab key="grids" title="Grids">
-                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--destiny-card, white)' }}>
+                            <Card className="mt-0 md:mt-0" style={{ backgroundColor: 'var(--root-card, white)' }}>
                                 <CardBody className="p-4 md:p-6">
-                                    <h2 className="text-lg md:text-xl font-semibold mb-4">Grids</h2>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-lg md:text-xl font-semibold">Grids</h2>
+                                        <Button
+                                            color="primary"
+                                            size="sm"
+                                            onPress={handleDownloadGridPDF}
+                                            style={{ backgroundColor: 'var(--root-primary)' }}
+                                        >
+                                            Download All Grids
+                                        </Button>
+                                    </div>
 
                                     {!profile || !basicInfo ? (
                                         <div className="text-center py-8">
@@ -1674,7 +1985,7 @@ export default function MePage() {
                                                                     color="primary"
                                                                     size="sm"
                                                                     onPress={() => setSelectedTab('mahadasha')}
-                                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                                 >
                                                                     Go to Mahadasha
                                                                 </Button>
@@ -1713,7 +2024,7 @@ export default function MePage() {
                                                                     color="primary"
                                                                     size="sm"
                                                                     onPress={() => setSelectedTab('mahadasha')}
-                                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                                 >
                                                                     Go to Mahadasha
                                                                 </Button>
@@ -1785,7 +2096,7 @@ export default function MePage() {
                                                                     color="primary"
                                                                     size="sm"
                                                                     onPress={() => setSelectedTab('mahadasha')}
-                                                                    style={{ backgroundColor: 'var(--destiny-primary)' }}
+                                                                    style={{ backgroundColor: 'var(--root-primary)' }}
                                                                 >
                                                                     Go to Mahadasha
                                                                 </Button>

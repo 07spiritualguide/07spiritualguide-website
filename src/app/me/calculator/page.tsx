@@ -109,56 +109,228 @@ export default function CalculatorPage() {
     };
 
     // Generate PDF report
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         if (!report) return;
 
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const {
+            addBranding,
+            addSectionHeader,
+            addInfoRow,
+            addNumberCard,
+            addStyledTable,
+            addFooter,
+            checkNewPage,
+            addTraitsList,
+            COLORS
+        } = await import('@/lib/pdf-utils');
+
         const doc = new jsPDF();
-        const { basicInfo } = report;
+        const { basicInfo, mahadasha, antardasha, pratyantardasha, currentMahadasha, currentAntardasha, hourlyDasha } = report;
+        const pageWidth = doc.internal.pageSize.getWidth();
 
-        // Title
-        doc.setFontSize(20);
-        doc.text('Numerology Report', 105, 20, { align: 'center' });
+        // Page 1: Header & Basic Info
+        let y = await addBranding(doc);
 
-        // Name and DOB
-        doc.setFontSize(14);
-        doc.text(`Name: ${basicInfo.fullName}`, 20, 35);
-        doc.text(`Date of Birth: ${basicInfo.formattedDob}`, 20, 45);
+        // Personal Info Section
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(basicInfo.fullName, pageWidth / 2, y + 5, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Born: ${basicInfo.formattedDob}`, pageWidth / 2, y + 12, { align: 'center' });
+        y += 20;
 
-        // Core Numbers
-        doc.setFontSize(16);
-        doc.text('Core Numbers', 20, 60);
-        doc.setFontSize(12);
-        doc.text(`Root Number: ${basicInfo.rootNumber}`, 25, 70);
-        doc.text(`Destiny Number: ${basicInfo.destinyNumber}`, 25, 78);
-        doc.text(`Name Number: ${basicInfo.nameNumber}`, 25, 86);
-        doc.text(`Supportive Numbers: ${basicInfo.supportiveNumbers.join(', ')}`, 25, 94);
+        // Number Cards Row
+        y += 5;
+        const cardWidth = 42;
+        const cardGap = 5;
+        const totalCardsWidth = cardWidth * 4 + cardGap * 3;
+        const startX = (pageWidth - totalCardsWidth) / 2;
 
-        // Lucky Details
-        doc.setFontSize(16);
-        doc.text('Lucky Details', 20, 110);
-        doc.setFontSize(12);
-        doc.text(`Lord: ${basicInfo.lord || '-'}`, 25, 120);
-        doc.text(`Zodiac: ${basicInfo.zodiacSign || '-'}`, 25, 128);
-        doc.text(`Lucky Color: ${basicInfo.luckyColor || '-'}`, 25, 136);
-        doc.text(`Lucky Direction: ${basicInfo.luckyDirection || '-'}`, 25, 144);
+        addNumberCard(doc, 'ROOT', basicInfo.rootNumber, startX, y, cardWidth, [217, 119, 6]);
+        addNumberCard(doc, 'DESTINY', basicInfo.destinyNumber, startX + cardWidth + cardGap, y, cardWidth, [16, 185, 129]);
+        addNumberCard(doc, 'NAME', basicInfo.nameNumber, startX + (cardWidth + cardGap) * 2, y, cardWidth, [139, 92, 246]);
+        addNumberCard(doc, 'SUPPORT', basicInfo.supportiveNumbers.join(', '), startX + (cardWidth + cardGap) * 3, y, cardWidth, [99, 102, 241]);
+        y += 35;
 
-        // Mahadasha Table
+        // Profile Section
+        y = addSectionHeader(doc, 'Profile', y);
+        y = addInfoRow(doc, 'Lord', basicInfo.lord || '-', y);
+        y = addInfoRow(doc, 'Zodiac Sign', basicInfo.zodiacSign || '-', y);
+        y = addInfoRow(doc, 'Lucky Color', basicInfo.luckyColor || '-', y);
+        y = addInfoRow(doc, 'Lucky Direction', basicInfo.luckyDirection || '-', y);
+        if (basicInfo.luckyDates?.length) {
+            y = addInfoRow(doc, 'Lucky Dates', basicInfo.luckyDates.join(', '), y);
+        }
+        if (basicInfo.favorableDays?.length) {
+            y = addInfoRow(doc, 'Favorable Days', basicInfo.favorableDays.join(', '), y);
+        }
+        if (basicInfo.favourableProfession?.length) {
+            y = addInfoRow(doc, 'Favorable Profession', basicInfo.favourableProfession.slice(0, 3).join(', '), y);
+        }
+        y += 5;
+
+        // Traits Section  
+        y = checkNewPage(doc, y, 50);
+        y = addSectionHeader(doc, 'Personality Traits', y, [139, 92, 246]);
+
+        const traitsY = y;
+        if (basicInfo.positiveTraits?.length) {
+            y = addTraitsList(doc, 'Positive Traits', basicInfo.positiveTraits.slice(0, 6), y, 18, [16, 185, 129]);
+        }
+        if (basicInfo.negativeTraits?.length) {
+            addTraitsList(doc, 'Areas to Improve', basicInfo.negativeTraits.slice(0, 6), traitsY, pageWidth / 2, [239, 68, 68]);
+        }
+        y += 10;
+
+        // Page 2: Mahadasha
+        addFooter(doc, 1);
         doc.addPage();
-        doc.setFontSize(16);
-        doc.text('Mahadasha Timeline', 20, 20);
+        y = 20;
 
-        autoTable(doc, {
-            startY: 30,
-            head: [['Period', 'From', 'To', 'Number']],
-            body: report.mahadasha.slice(0, 20).map((entry, idx) => [
-                `Period ${idx + 1}`,
-                entry.fromDate,
-                entry.toDate,
-                entry.number.toString(),
+        y = addSectionHeader(doc, 'Mahadasha Timeline (9-Year Periods)', y);
+        if (currentMahadasha) {
+            doc.setFontSize(9);
+            doc.setTextColor(0, 111, 238);
+            doc.text(`Current Period: ${currentMahadasha.fromDate} - ${currentMahadasha.toDate} (Number ${currentMahadasha.number})`, 18, y);
+            y += 8;
+        }
+
+        y = addStyledTable(doc, y,
+            ['#', 'From Date', 'To Date', 'Number'],
+            mahadasha.slice(0, 15).map((m, i) => [
+                i + 1,
+                m.fromDate,
+                m.toDate,
+                m.number
             ]),
-        });
+            { highlightColumn: 3 }
+        );
 
-        doc.save(`numerology-report-${basicInfo.firstName}.pdf`);
+        // Page 3: Antardasha
+        y = checkNewPage(doc, y + 10, 60);
+        if (y < 30) y = 20;
+
+        y = addSectionHeader(doc, 'Antardasha Timeline (Sub-Periods)', y, [120, 40, 200]);
+        if (currentAntardasha) {
+            doc.setFontSize(9);
+            doc.setTextColor(120, 40, 200);
+            doc.text(`Current: ${currentAntardasha.fromDate} - ${currentAntardasha.toDate} (Number ${currentAntardasha.antardasha})`, 18, y);
+            y += 8;
+        }
+
+        y = addStyledTable(doc, y,
+            ['#', 'From', 'To', 'Number'],
+            antardasha.slice(0, 20).map((a, i) => [
+                i + 1,
+                a.fromDate,
+                a.toDate,
+                a.antardasha
+            ]),
+            { headerColor: [120, 40, 200], highlightColumn: 3 }
+        );
+
+        // Page 4: Pratyantardasha & Hourly
+        addFooter(doc, doc.internal.pages.length - 1);
+        doc.addPage();
+        y = 20;
+
+        if (pratyantardasha?.length) {
+            const currentYear = new Date().getFullYear();
+            const yearData = pratyantardasha.find(p => p.year === currentYear);
+
+            y = addSectionHeader(doc, `Pratyantardasha ${currentYear}`, y, [23, 201, 100]);
+
+            if (yearData?.periods) {
+                y = addStyledTable(doc, y,
+                    ['#', 'From', 'To', 'Number'],
+                    yearData.periods.slice(0, 12).map((p, i) => [
+                        i + 1,
+                        p.fromDate,
+                        p.toDate,
+                        p.pratyantardasha
+                    ]),
+                    { headerColor: [23, 201, 100], highlightColumn: 3 }
+                );
+            }
+        }
+
+        // Hourly Dasha
+        y = checkNewPage(doc, y + 10, 80);
+        if (hourlyDasha?.length) {
+            y = addSectionHeader(doc, 'Hourly Dasha (Today)', y, [245, 158, 11]);
+
+            y = addStyledTable(doc, y,
+                ['Time', 'Number', 'Time', 'Number'],
+                hourlyDasha.reduce((rows: (string | number)[][], h, i) => {
+                    if (i % 2 === 0) {
+                        rows.push([h.hour, h.hourlyDasha, hourlyDasha[i + 1]?.hour || '', hourlyDasha[i + 1]?.hourlyDasha || '']);
+                    }
+                    return rows;
+                }, []),
+                { headerColor: [245, 158, 11] }
+            );
+        }
+
+        addFooter(doc, doc.internal.pages.length - 1);
+
+        // === PAGE 5: Grids ===
+        doc.addPage();
+        y = 20;
+
+        // Import grid drawing function
+        const { drawLoShuGrid, drawGridLegend } = await import('@/lib/pdf-utils');
+        const { calculateDestinyGrid, calculateMahadashaGrid } = await import('@/lib/loshu-grid');
+
+        const gridSize = 28;
+        const gridX = (pageWidth - gridSize * 3) / 2;
+
+        // Basic Grid
+        y = addSectionHeader(doc, 'Basic Grid', y);
+        y = drawGridLegend(doc, ['natal', 'root', 'destiny'], 20, y + 3);
+        y += 5;
+
+        const basicGrid = calculateDestinyGrid(
+            basicInfo.dateOfBirthISO,
+            basicInfo.rootNumber,
+            basicInfo.destinyNumber
+        );
+        y = drawLoShuGrid(doc, basicGrid, gridX, y, undefined, gridSize);
+
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Shows your natal digits (birth date), root number, and destiny number', pageWidth / 2, y, { align: 'center' });
+        y += 15;
+
+        // Mahadasha Grid
+        if (mahadasha?.length) {
+            y = addSectionHeader(doc, 'Mahadasha Grid', y, [120, 40, 200]);
+            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha'], 20, y + 3);
+            y += 5;
+
+            const mahaGrid = calculateMahadashaGrid(
+                basicInfo.dateOfBirthISO,
+                basicInfo.rootNumber,
+                basicInfo.destinyNumber,
+                mahadasha
+            );
+            y = drawLoShuGrid(doc, mahaGrid, gridX, y, undefined, gridSize);
+
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Shows your destiny + current Mahadasha period', pageWidth / 2, y, { align: 'center' });
+        }
+
+        addFooter(doc, doc.internal.pages.length - 1);
+
+        // Generated timestamp
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 5, { align: 'right' });
+
+        doc.save(`numerosense-report-${basicInfo.firstName}.pdf`);
     };
 
     // Generate CSV export
