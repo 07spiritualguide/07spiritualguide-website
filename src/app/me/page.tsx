@@ -22,7 +22,7 @@ import {
 import LoShuGridComponent from '@/components/grids/LoShuGrid';
 import GridLegend from '@/components/grids/GridLegend';
 import StudentNavbar from '@/components/StudentNavbar';
-import { extractFirstLastName, calculateNameNumber, getNameBreakdown } from '@/lib/name-numerology';
+import { extractNameParts, calculateNameNumber, getNameBreakdown } from '@/lib/name-numerology';
 import { getQuoteForCurrentTime } from '@/lib/quotes';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -49,6 +49,7 @@ interface BasicInfo {
     favorable_days: string[] | null;
     favorable_alphabets: string[] | null;
     first_name: string | null;
+    middle_name: string | null;
     last_name: string | null;
     name_number: number | null;
 }
@@ -255,14 +256,15 @@ export default function MePage() {
             // Check if name numerology is missing for existing users
             if (!info.first_name || !info.name_number) {
                 // Calculate name numerology from full_name
-                const { firstName, lastName } = extractFirstLastName(student.full_name);
-                const nameNumber = calculateNameNumber(firstName, lastName);
+                const { firstName, middleName, lastName } = extractNameParts(student.full_name);
+                const nameNumber = calculateNameNumber(firstName, middleName, lastName);
 
                 // Update basic_info with name numerology
                 await supabase
                     .from('basic_info')
                     .update({
                         first_name: firstName,
+                        middle_name: middleName || null,
                         last_name: lastName,
                         name_number: nameNumber,
                     })
@@ -272,6 +274,7 @@ export default function MePage() {
                 setBasicInfo({
                     ...info,
                     first_name: firstName,
+                    middle_name: middleName || null,
                     last_name: lastName,
                     name_number: nameNumber,
                 });
@@ -904,7 +907,9 @@ export default function MePage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <p className="text-sm text-default-500">Full Name</p>
-                                            <p className="text-lg font-medium">{profile?.full_name}</p>
+                                            <p className="text-lg font-medium">{basicInfo?.first_name === basicInfo?.last_name
+                                                ? (basicInfo?.first_name || profile?.full_name || '-')
+                                                : ([basicInfo?.first_name, basicInfo?.middle_name, basicInfo?.last_name].filter(Boolean).join(' ') || profile?.full_name || '-')}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-default-500">Date of Birth</p>
@@ -1069,6 +1074,27 @@ export default function MePage() {
                                                     </TableBody>
                                                 </Table>
                                             </div>
+
+                                            {/* Middle Name Table - only if middle name exists */}
+                                            {basicInfo.middle_name && (
+                                                <div>
+                                                    <p className="text-sm text-default-500 mb-2 opacity-0">.</p>
+                                                    <Table aria-label="Middle name" removeWrapper>
+                                                        <TableHeader>
+                                                            <TableColumn>Middle Name</TableColumn>
+                                                            <TableColumn className="text-right">Number</TableColumn>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {getNameBreakdown(basicInfo.middle_name).map((item, idx) => (
+                                                                <TableRow key={idx}>
+                                                                    <TableCell>{item.letter}</TableCell>
+                                                                    <TableCell className="text-right">{item.value}</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            )}
 
                                             {basicInfo.first_name !== basicInfo.last_name && basicInfo.last_name && (
                                                 <div>

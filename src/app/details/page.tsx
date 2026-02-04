@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getStudentSession, setStudentSession, getSessionToken } from '@/lib/auth';
 import { calculateNumerology } from '@/lib/numerology';
 import { getNumerologyDataForRoot } from '@/lib/numerologyData';
-import { extractFirstLastName, calculateNameNumber } from '@/lib/name-numerology';
+import { extractNameParts, calculateNameNumber } from '@/lib/name-numerology';
 import StudentNavbar from '@/components/StudentNavbar';
 
 export default function DetailsPage() {
@@ -70,11 +70,11 @@ export default function DetailsPage() {
             const numerology = calculateNumerology(dob);
             const rootData = getNumerologyDataForRoot(numerology.rootNumber);
 
-            // Extract first and last name from full name
-            const { firstName, lastName } = extractFirstLastName(fullName);
+            // Extract first, middle, and last name from full name
+            const { firstName, middleName, lastName } = extractNameParts(fullName);
 
-            // Calculate name number using Chaldean system
-            const nameNumber = calculateNameNumber(firstName, lastName);
+            // Calculate name number using Chaldean system (includes middle name)
+            const nameNumber = calculateNameNumber(firstName, middleName, lastName);
 
             // Prepare full basic_info data
             const basicInfoData = {
@@ -92,6 +92,7 @@ export default function DetailsPage() {
                 favorable_alphabets: rootData?.favorable_alphabets || null,
                 favourable_profession: rootData?.favourable_profession || null,
                 first_name: firstName,
+                middle_name: middleName || null,
                 last_name: lastName,
                 name_number: nameNumber,
             };

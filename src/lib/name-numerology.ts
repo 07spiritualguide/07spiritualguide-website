@@ -13,28 +13,47 @@ const CHALDEAN_MAP: { [key: string]: number } = {
 };
 
 /**
- * Extract first and last name from full name
+ * Extract first, middle, and last name from full name
  * First word = first name, last word = last name
- * Middle names are excluded
+ * All words in between = middle name (combined)
  */
-export function extractFirstLastName(fullName: string): { firstName: string; lastName: string } {
+export function extractNameParts(fullName: string): { firstName: string; middleName: string; lastName: string } {
     const trimmed = fullName.trim();
     const words = trimmed.split(/\s+/).filter(word => word.length > 0);
 
     if (words.length === 0) {
-        return { firstName: '', lastName: '' };
+        return { firstName: '', middleName: '', lastName: '' };
     }
 
     if (words.length === 1) {
-        // Single name - use same for both
-        return { firstName: words[0], lastName: words[0] };
+        // Single name - use same for first and last, no middle
+        return { firstName: words[0], middleName: '', lastName: words[0] };
     }
 
-    // Multiple words - first and last only
+    if (words.length === 2) {
+        // Two words - first and last only, no middle
+        return {
+            firstName: words[0],
+            middleName: '',
+            lastName: words[1]
+        };
+    }
+
+    // Three or more words - first, middle (all in between), and last
     return {
         firstName: words[0],
+        middleName: words.slice(1, -1).join(' '),
         lastName: words[words.length - 1]
     };
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use extractNameParts instead
+ */
+export function extractFirstLastName(fullName: string): { firstName: string; lastName: string } {
+    const { firstName, lastName } = extractNameParts(fullName);
+    return { firstName, lastName };
 }
 
 /**
@@ -74,10 +93,11 @@ function reduceToSingleDigit(num: number): number {
 
 /**
  * Calculate name number using Chaldean system
+ * Includes first name, middle name, and last name
  */
-export function calculateNameNumber(firstName: string, lastName: string): number {
-    // Combine names
-    const fullName = `${firstName}${lastName}`;
+export function calculateNameNumber(firstName: string, middleName: string, lastName: string): number {
+    // Combine all names
+    const fullName = `${firstName}${middleName}${lastName}`;
 
     // Clean the name
     const cleaned = cleanName(fullName);
@@ -90,3 +110,4 @@ export function calculateNameNumber(firstName: string, lastName: string): number
     // Reduce to single digit
     return reduceToSingleDigit(sum);
 }
+
