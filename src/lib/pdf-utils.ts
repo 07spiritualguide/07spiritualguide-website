@@ -80,9 +80,10 @@ export function addSectionHeader(doc: jsPDF, title: string, y: number, color: [n
 export function addInfoRow(doc: jsPDF, label: string, value: string, y: number, x: number = 18): number {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${label}:`, x, y);
+    const labelText = `${label}: `;
+    doc.text(labelText, x, y);
     doc.setFont('helvetica', 'normal');
-    doc.text(value || '-', x + doc.getTextWidth(`${label}: `), y);
+    doc.text(value || '-', x + doc.getTextWidth(labelText), y);
     return y + 6;
 }
 
@@ -284,25 +285,28 @@ export function drawLoShuGrid(
             doc.text(String(cellValues[position]), cellX + 2, cellY + 4);
 
             if (cell && cell.digits.length > 0) {
-                // FIXED: Show all digits side-by-side with their colors
-                // Build a single line with all digits
+                // Show all digits side-by-side with their colors, properly centered
                 const allDigits = cell.digits;
                 const fontSize = cellSize > 25 ? 11 : 9;
                 doc.setFontSize(fontSize);
                 doc.setFont('helvetica', 'bold');
 
-                // Calculate total width needed
-                const digitWidth = fontSize * 0.6; // Approximate width per digit
-                const gap = 2;
-                const totalWidth = allDigits.length * digitWidth + (allDigits.length - 1) * gap;
-                let startX = cellX + (cellSize - totalWidth) / 2;
-                const digitY = cellY + cellSize / 2 + 3;
+                // Build the full digit string to calculate total width
+                const digitString = allDigits.map(d => String(d.value)).join(' ');
+                const totalWidth = doc.getTextWidth(digitString);
+                const centerX = cellX + cellSize / 2;
+                const digitY = cellY + cellSize / 2 + fontSize / 3;
 
-                // Draw each digit with its own color, side by side
+                // Calculate starting X position for centered alignment
+                let currentX = centerX - totalWidth / 2;
+                const spaceWidth = doc.getTextWidth(' ');
+
+                // Draw each digit with its own color
                 allDigits.forEach((d, idx) => {
                     const color = SOURCE_RGB_COLORS[d.source] || [50, 50, 50];
                     doc.setTextColor(...color);
-                    doc.text(String(d.value), startX + idx * (digitWidth + gap), digitY);
+                    doc.text(String(d.value), currentX, digitY);
+                    currentX += doc.getTextWidth(String(d.value)) + spaceWidth;
                 });
             }
         }
