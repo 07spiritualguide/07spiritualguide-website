@@ -145,7 +145,6 @@ export default function MePage() {
     const isTrialExpired = cachedData.isTrialExpired;
 
     // Local UI state (not cached)
-    const [selectedPratyantarYear, setSelectedPratyantarYear] = useState<number>(new Date().getFullYear());
     const [selectedDailyDate, setSelectedDailyDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(true);
     const [calculatingMahadasha, setCalculatingMahadasha] = useState(false);
@@ -476,6 +475,7 @@ export default function MePage() {
         setCalculatingPratyantardasha(true);
 
         try {
+            // Use birthDay as first carry (correct formula)
             const dob = new Date(profile.date_of_birth);
             const birthDay = dob.getDate();
 
@@ -615,8 +615,9 @@ export default function MePage() {
 
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const yearData = pratyantardashaTimeline.find(y => y.year === selectedPratyantarYear);
-        if (!yearData) return;
+
+        // Flatten all periods from all years
+        const allPeriods = pratyantardashaTimeline.flatMap(year => year.periods);
 
         let y = await addBranding(doc);
 
@@ -628,17 +629,17 @@ export default function MePage() {
         doc.text(`Born: ${formatDate(profile.date_of_birth)}`, pageWidth / 2, y + 12, { align: 'center' });
         y += 25;
 
-        y = addSectionHeader(doc, `Pratyantardasha ${selectedPratyantarYear}`, y, [23, 201, 100]);
+        y = addSectionHeader(doc, 'Pratyantardasha Timeline', y, [23, 201, 100]);
 
         doc.setFontSize(9);
         doc.setTextColor(23, 201, 100);
-        doc.text(`Year Period: ${yearData.fromDate} to ${yearData.toDate}`, 18, y);
+        doc.text('Full Pratyantardasha Timeline', 18, y);
         y += 8;
 
         autoTable(doc, {
             startY: y,
             head: [['#', 'From Date', 'To Date', 'Number']],
-            body: yearData.periods.map((period, idx) => [
+            body: allPeriods.map((period, idx) => [
                 idx + 1,
                 period.fromDate,
                 period.toDate,
@@ -656,7 +657,7 @@ export default function MePage() {
             didParseCell: (data) => {
                 if (data.section === 'body') {
                     const rowIdx = data.row.index;
-                    if (yearData.periods[rowIdx] && isCurrentPratyantardasha(yearData.periods[rowIdx])) {
+                    if (allPeriods[rowIdx] && isCurrentPratyantardasha(allPeriods[rowIdx])) {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.textColor = [23, 201, 100];
                     }
@@ -666,18 +667,18 @@ export default function MePage() {
         });
 
         addFooter(doc);
-        doc.save(`numerosense-pratyantardasha-${selectedPratyantarYear}-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
+        doc.save(`numerosense-pratyantardasha-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
     const handleDownloadPratyantardashaCSV = () => {
         if (!pratyantardashaTimeline || !profile) return;
 
-        const yearData = pratyantardashaTimeline.find(y => y.year === selectedPratyantarYear);
-        if (!yearData) return;
+        // Flatten all periods from all years
+        const allPeriods = pratyantardashaTimeline.flatMap(year => year.periods);
 
         let content = 'From Date,To Date,Pratyantardasha,Current\n';
 
-        yearData.periods.forEach((period) => {
+        allPeriods.forEach((period) => {
             const isCurrent = isCurrentPratyantardasha(period) ? 'Yes' : 'No';
             content += `${period.fromDate},${period.toDate},${period.pratyantardasha},${isCurrent}\n`;
         });
@@ -686,7 +687,7 @@ export default function MePage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `pratyantardasha_${selectedPratyantarYear}_${profile.full_name.replace(/\s+/g, '_')}.csv`;
+        a.download = `pratyantardasha_full_${profile.full_name.replace(/\s+/g, '_')}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -885,22 +886,24 @@ export default function MePage() {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const largeGridSize = 35;
-        const smallGridSize = 22;
+        const smallGridSize = 20;
         const gridX = (pageWidth - largeGridSize * 3) / 2;
+        // For 2x2 grid layout, calculate centered positions
+        const smallGridWidth = smallGridSize * 3; // 60
+        const gridGap = 15;
+        const totalWidth = smallGridWidth * 2 + gridGap; // 135
+        const gridStartX = (pageWidth - totalWidth) / 2;
+        let pageNum = 1;
 
-        // Helper to add page with branding
-        const addNewPage = async (pageNum: number) => {
+        // Helper to add page WITHOUT branding (for pages after first)
+        const addNewPageNoBranding = () => {
             addFooter(doc, pageNum);
+            pageNum++;
             doc.addPage();
-            const y = await addBranding(doc);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(profile.full_name, pageWidth / 2, y + 3, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            return y + 12;
+            return 20; // Start Y position
         };
 
-        // === PAGE 1: Header + Basic Grid ===
+        // === PAGE 1: Header + Basic Grid (WITH branding) ===
         let y = await addBranding(doc);
 
         doc.setFontSize(12);
@@ -926,9 +929,9 @@ export default function MePage() {
         doc.setTextColor(100, 100, 100);
         doc.text('Shows your natal digits (birth date), root number, and destiny number', pageWidth / 2, y + 5, { align: 'center' });
 
-        // === PAGE 2: Mahadasha Grid ===
+        // === PAGE 2: Mahadasha Grid (NO branding) ===
         if (mahadashaTimeline) {
-            y = await addNewPage(1);
+            y = addNewPageNoBranding();
 
             y = addSectionHeader(doc, 'Mahadasha Grid', y, [120, 40, 200]);
             y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha'], 20, y + 5);
@@ -947,90 +950,85 @@ export default function MePage() {
             doc.text('Shows your destiny + current Mahadasha period', pageWidth / 2, y + 5, { align: 'center' });
         }
 
-        // === PAGE 3: Personal Year Grid ===
+        // === PAGES 3-6: Personal Year Grids (16 years, 4 per page) ===
         if (mahadashaTimeline && antardashaTimeline) {
-            y = await addNewPage(2);
-
             const currentYear = new Date().getFullYear();
-            y = addSectionHeader(doc, `Personal Year Grid (${currentYear})`, y, [23, 201, 100]);
-            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha'], 20, y + 5);
-            y += 8;
 
-            const personalYearGrid = calculatePersonalYearGrid(
-                profile.date_of_birth,
-                basicInfo.root_number || 1,
-                basicInfo.destiny_number || 1,
-                currentYear,
-                mahadashaTimeline,
-                antardashaTimeline
-            );
-            y = drawLoShuGrid(doc, personalYearGrid, gridX, y, undefined, largeGridSize);
+            for (let pageOffset = 0; pageOffset < 4; pageOffset++) {
+                y = addNewPageNoBranding();
 
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Grid calculated for the year ${currentYear}`, pageWidth / 2, y + 5, { align: 'center' });
+                const startYear = currentYear + pageOffset * 4;
+                const endYear = startYear + 3;
+                y = addSectionHeader(doc, `Personal Year Grids (${startYear} - ${endYear})`, y, [23, 201, 100]);
+                y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha'], 20, y + 5);
+                y += 10;
+
+                // 2x2 layout per page - centered
+                for (let i = 0; i < 4; i++) {
+                    const yearOffset = pageOffset * 4 + i;
+                    const year = currentYear + yearOffset;
+                    const col = i % 2;
+                    const row = Math.floor(i / 2);
+                    const gX = gridStartX + col * (smallGridWidth + gridGap);
+                    const gY = y + row * 80;
+
+                    const personalYearGrid = calculatePersonalYearGrid(
+                        profile.date_of_birth,
+                        basicInfo.root_number || 1,
+                        basicInfo.destiny_number || 1,
+                        year,
+                        mahadashaTimeline,
+                        antardashaTimeline
+                    );
+
+                    drawLoShuGrid(doc, personalYearGrid, gX, gY, String(year), smallGridSize);
+                }
+            }
         }
 
-        // === PAGE 4: Monthly Grids (Jan-Jun) ===
+        // === PAGES 7-9: Monthly Grids (4 per page) ===
         if (mahadashaTimeline && antardashaTimeline && pratyantardashaTimeline) {
             const currentYear = new Date().getFullYear();
             const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            const gridSpacing = 62;
 
-            // Page 4: Jan-Jun
-            y = await addNewPage(3);
-            y = addSectionHeader(doc, `Monthly Grids - ${currentYear} (Jan-Jun)`, y, [245, 158, 11]);
-            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'], 14, y + 5);
-            y += 10;
+            // 3 pages with 4 months each
+            const monthPages = [
+                { label: 'Jan-Apr', start: 0, end: 4 },
+                { label: 'May-Aug', start: 4, end: 8 },
+                { label: 'Sep-Dec', start: 8, end: 12 }
+            ];
 
-            for (let i = 0; i < 6; i++) {
-                const col = i % 3;
-                const row = Math.floor(i / 3);
-                const gX = 14 + col * gridSpacing;
-                const gY = y + row * 75;
+            for (const { label, start, end } of monthPages) {
+                y = addNewPageNoBranding();
+                y = addSectionHeader(doc, `Monthly Grids - ${currentYear} (${label})`, y, [245, 158, 11]);
+                y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'], 14, y + 5);
+                y += 10;
 
-                const monthlyGrid = calculateMonthlyGrid(
-                    profile.date_of_birth,
-                    basicInfo.root_number || 1,
-                    basicInfo.destiny_number || 1,
-                    currentYear,
-                    i,
-                    mahadashaTimeline,
-                    antardashaTimeline,
-                    pratyantardashaTimeline
-                );
+                // 2x2 layout - centered
+                for (let i = start; i < end; i++) {
+                    const idx = i - start;
+                    const col = idx % 2;
+                    const row = Math.floor(idx / 2);
+                    const gX = gridStartX + col * (smallGridWidth + gridGap);
+                    const gY = y + row * 80;
 
-                drawLoShuGrid(doc, monthlyGrid, gX, gY, months[i], smallGridSize);
-            }
+                    const monthlyGrid = calculateMonthlyGrid(
+                        profile.date_of_birth,
+                        basicInfo.root_number || 1,
+                        basicInfo.destiny_number || 1,
+                        currentYear,
+                        i,
+                        mahadashaTimeline,
+                        antardashaTimeline,
+                        pratyantardashaTimeline
+                    );
 
-            // Page 5: Jul-Dec
-            y = await addNewPage(4);
-            y = addSectionHeader(doc, `Monthly Grids - ${currentYear} (Jul-Dec)`, y, [245, 158, 11]);
-            y = drawGridLegend(doc, ['natal', 'destiny', 'mahadasha', 'antardasha', 'pratyantardasha'], 14, y + 5);
-            y += 10;
-
-            for (let i = 6; i < 12; i++) {
-                const col = (i - 6) % 3;
-                const row = Math.floor((i - 6) / 3);
-                const gX = 14 + col * gridSpacing;
-                const gY = y + row * 75;
-
-                const monthlyGrid = calculateMonthlyGrid(
-                    profile.date_of_birth,
-                    basicInfo.root_number || 1,
-                    basicInfo.destiny_number || 1,
-                    currentYear,
-                    i,
-                    mahadashaTimeline,
-                    antardashaTimeline,
-                    pratyantardashaTimeline
-                );
-
-                drawLoShuGrid(doc, monthlyGrid, gX, gY, months[i], smallGridSize);
+                    drawLoShuGrid(doc, monthlyGrid, gX, gY, months[i], smallGridSize);
+                }
             }
         }
 
-        addFooter(doc, doc.internal.pages.length - 1);
+        addFooter(doc, pageNum);
         doc.save(`numerosense-grids-${profile.full_name.replace(/\s+/g, '_')}.pdf`);
     };
 
@@ -1608,31 +1606,15 @@ export default function MePage() {
                                                 </div>
                                             </div>
 
-                                            {/* Year selector */}
-                                            <div className="mb-4">
-                                                <Select
-                                                    label="Select Year"
-                                                    className="max-w-xs"
-                                                    selectedKeys={[selectedPratyantarYear.toString()]}
-                                                    onSelectionChange={(keys) => setSelectedPratyantarYear(Number(Array.from(keys)[0]))}
-                                                >
-                                                    {pratyantardashaTimeline.map((y) => (
-                                                        <SelectItem key={y.year.toString()} textValue={y.year.toString()}>
-                                                            {y.year.toString()}
-                                                        </SelectItem>
-                                                    ))}
-                                                </Select>
-                                            </div>
-
-                                            {/* Periods table */}
+                                            {/* Full Timeline table */}
                                             {(() => {
-                                                const yearData = pratyantardashaTimeline.find(y => y.year === selectedPratyantarYear);
-                                                if (!yearData) return <p className="text-default-500">No data for selected year</p>;
+                                                // Flatten all periods from all years
+                                                const allPeriods = pratyantardashaTimeline.flatMap(year => year.periods);
 
                                                 return (
                                                     <>
                                                         <p className="text-sm text-default-500 mb-2">
-                                                            Year: {yearData.fromDate} to {yearData.toDate}
+                                                            Full Pratyantardasha Timeline
                                                         </p>
                                                         <div className="max-h-96 overflow-y-auto mb-4">
                                                             <Table aria-label="Pratyantardasha timeline" removeWrapper>
@@ -1642,7 +1624,7 @@ export default function MePage() {
                                                                     <TableColumn>PRATYANTARDASHA</TableColumn>
                                                                 </TableHeader>
                                                                 <TableBody>
-                                                                    {yearData.periods.map((period, idx) => {
+                                                                    {allPeriods.map((period, idx) => {
                                                                         const isCurrent = isCurrentPratyantardasha(period);
                                                                         return (
                                                                             <TableRow

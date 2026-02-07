@@ -57,53 +57,79 @@ function nextNumber(num: number): number {
 
 /**
  * Calculate Pratyantardasha periods for a single year
- * @param birthDay - Day of birth (1-31)
+ * 
+ * CORRECT FORMULA (from numerologist):
+ * Total = (8 × Current_Planet) + Carry
+ * 
+ * Where:
+ * - 8 = Always multiply by 8 (table of eight)
+ * - Current_Planet = Cycles through planets (starts at Antardasha number)
+ * - First Carry = BIRTH DAY
+ * - Subsequent Carry = Remainder from previous calculation (end day of previous period)
+ * - Antardasha = ONLY determines starting planet number
+ * - Always use 30-day months
+ * 
+ * @param birthDay - Day of birth (for first carry)
+ * @param antardasha - The Antardasha number (starting planet only)
  * @param startDate - Starting date (birthday in that year)
  * @param endDate - Ending date (day before next birthday)
- * @param startingNumber - Antardasha number from previous year
  * @returns Array of Pratyantardasha periods
  */
 function calculatePeriodsForYear(
     birthDay: number,
+    antardasha: number,
     startDate: Date,
-    endDate: Date,
-    startingNumber: number
+    endDate: Date
 ): PratyantardashaEntry[] {
     const periods: PratyantardashaEntry[] = [];
 
     let currentDate = new Date(startDate);
-    let currentNumber = startingNumber;
-    let carryDays = birthDay; // First period uses birth day
-    let isFirst = true;
+    let currentPlanet = antardasha; // Starting planet = Antardasha number
+    let carry = birthDay; // FIRST CARRY = BIRTH DAY
 
     while (currentDate < endDate) {
-        // Calculate days for this period
-        const multiplied = 8 * currentNumber;
-        const totalDays = multiplied + carryDays;
+        // CORRECT FORMULA: Total = (8 × Current Planet) + Carry
+        // Always multiply by 8, NOT by Antardasha
+        const total = (8 * currentPlanet) + carry;
 
-        // Split into 30-day months
-        const fullMonths = Math.floor(totalDays / 30);
-        carryDays = totalDays % 30;
+        // Split into 30-day months (always 30, regardless of actual month length)
+        const fullMonths = Math.floor(total / 30);
+        carry = total % 30; // This carry becomes the end day AND next period's carry
 
-        // Calculate end date for this period
-        const periodDays = fullMonths * 30;
-        let periodEndDate = addDays(currentDate, periodDays - 1);
+        // If carry is 0, it means exactly divisible - end on 30th of previous month
+        const endDay = carry === 0 ? 30 : carry;
+        const monthsToAdd = carry === 0 ? fullMonths - 1 : fullMonths;
+
+        // Calculate end date by adding months and setting the day
+        let endMonth = currentDate.getMonth() + monthsToAdd;
+        let endYear = currentDate.getFullYear();
+
+        // Handle year overflow
+        while (endMonth > 11) {
+            endMonth -= 12;
+            endYear += 1;
+        }
+
+        // Create end date
+        let periodEndDate = new Date(endYear, endMonth, endDay);
 
         // Don't go past the year end date
         if (periodEndDate > endDate) {
-            periodEndDate = endDate;
+            periodEndDate = new Date(endDate);
         }
 
+        // Period starts from currentDate
+        const periodStartDate = new Date(currentDate);
+
         periods.push({
-            fromDate: formatDate(currentDate),
+            fromDate: formatDate(periodStartDate),
             toDate: formatDate(periodEndDate),
-            pratyantardasha: currentNumber,
+            pratyantardasha: currentPlanet,
         });
 
-        // Move to next period
-        currentDate = addDays(periodEndDate, 1);
-        currentNumber = nextNumber(currentNumber);
-        isFirst = false;
+        // Move to next period (same day as end date, not day after)
+        currentDate = new Date(periodEndDate);
+        currentPlanet = nextNumber(currentPlanet);
 
         // Safety check to prevent infinite loop
         if (periods.length > 50) break;
@@ -114,7 +140,7 @@ function calculatePeriodsForYear(
 
 /**
  * Calculate full Pratyantardasha timeline from Antardasha data
- * @param birthDay - Day of birth (1-31)
+ * @param birthDay - Day of birth (used as first carry for each year)
  * @param antardashaTimeline - Array of Antardasha entries with fromDate, toDate, antardasha
  * @returns Array of yearly Pratyantardasha data
  */
@@ -127,10 +153,8 @@ export function calculatePratyantardasha(
     for (let i = 0; i < antardashaTimeline.length; i++) {
         const entry = antardashaTimeline[i];
 
-        // Get previous year's antardasha (for first year, use current year's)
-        const prevAntardasha = i === 0
-            ? entry.antardasha
-            : antardashaTimeline[i - 1].antardasha;
+        // Antardasha number determines starting planet for this year
+        const antardasha = entry.antardasha;
 
         const startDate = parseDate(entry.fromDate);
         const endDate = parseDate(entry.toDate);
@@ -138,9 +162,9 @@ export function calculatePratyantardasha(
 
         const periods = calculatePeriodsForYear(
             birthDay,
+            antardasha,
             startDate,
-            endDate,
-            prevAntardasha
+            endDate
         );
 
         timeline.push({

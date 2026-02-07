@@ -284,40 +284,26 @@ export function drawLoShuGrid(
             doc.text(String(cellValues[position]), cellX + 2, cellY + 4);
 
             if (cell && cell.digits.length > 0) {
-                // Group digits by source
-                const digitsBySource = new Map<string, number[]>();
-                cell.digits.forEach(d => {
-                    if (!digitsBySource.has(d.source)) {
-                        digitsBySource.set(d.source, []);
-                    }
-                    digitsBySource.get(d.source)!.push(d.value);
-                });
+                // FIXED: Show all digits side-by-side with their colors
+                // Build a single line with all digits
+                const allDigits = cell.digits;
+                const fontSize = cellSize > 25 ? 11 : 9;
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', 'bold');
 
-                // Render digits
-                const sources = Array.from(digitsBySource.keys());
-                let digitY = cellY + cellSize / 2 + 2;
+                // Calculate total width needed
+                const digitWidth = fontSize * 0.6; // Approximate width per digit
+                const gap = 2;
+                const totalWidth = allDigits.length * digitWidth + (allDigits.length - 1) * gap;
+                let startX = cellX + (cellSize - totalWidth) / 2;
+                const digitY = cellY + cellSize / 2 + 3;
 
-                if (sources.length === 1) {
-                    // Single source - centered
-                    const source = sources[0];
-                    const digits = digitsBySource.get(source)!;
-                    const color = SOURCE_RGB_COLORS[source] || [50, 50, 50];
+                // Draw each digit with its own color, side by side
+                allDigits.forEach((d, idx) => {
+                    const color = SOURCE_RGB_COLORS[d.source] || [50, 50, 50];
                     doc.setTextColor(...color);
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(digits.join(','), cellX + cellSize / 2, digitY, { align: 'center' });
-                } else {
-                    // Multiple sources - stacked
-                    doc.setFontSize(7);
-                    digitY = cellY + 8;
-                    sources.forEach((source, idx) => {
-                        const digits = digitsBySource.get(source)!;
-                        const color = SOURCE_RGB_COLORS[source] || [50, 50, 50];
-                        doc.setTextColor(...color);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text(digits.join(','), cellX + cellSize / 2, digitY + idx * 6, { align: 'center' });
-                    });
-                }
+                    doc.text(String(d.value), startX + idx * (digitWidth + gap), digitY);
+                });
             }
         }
     }
