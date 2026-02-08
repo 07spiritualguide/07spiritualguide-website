@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
                 'X-Title': 'NumeroSense',
             },
             body: JSON.stringify({
-                model: model || 'xiaomi/mimo-v2-flash:free',
+                model: model || 'openrouter/free',
                 messages,
             }),
         });

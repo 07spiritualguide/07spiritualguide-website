@@ -380,7 +380,7 @@ Current Antardasha: ${currentAntardasha ? `Number ${currentAntardasha.number}` :
                 },
                 body: JSON.stringify({
                     sessionToken,
-                    model: 'nvidia/nemotron-3-nano-30b-a3b:free',
+                    model: 'openrouter/free',
                     messages: conversationHistory,
                 }),
             });
