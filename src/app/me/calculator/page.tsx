@@ -159,6 +159,7 @@ export default function CalculatorPage() {
         y = addSectionHeader(doc, 'Profile', y);
         y = addInfoRow(doc, 'Lord', basicInfo.lord || '-', y);
         y = addInfoRow(doc, 'Zodiac Sign', basicInfo.zodiacSign || '-', y);
+        y = addInfoRow(doc, 'Favourable Zodiac Sign', basicInfo.favourableZodiacSign || '-', y);
         y = addInfoRow(doc, 'Lucky Color', basicInfo.luckyColor || '-', y);
         y = addInfoRow(doc, 'Lucky Direction', basicInfo.luckyDirection || '-', y);
         if (basicInfo.luckyDates?.length) {
@@ -444,6 +445,7 @@ export default function CalculatorPage() {
         csv += `Supportive Numbers,"${basicInfo.supportiveNumbers.join(', ')}"\n`;
         csv += `Lord,${basicInfo.lord || ''}\n`;
         csv += `Zodiac Sign,${basicInfo.zodiacSign || ''}\n`;
+        csv += `Favourable Zodiac Sign,${basicInfo.favourableZodiacSign || ''}\n`;
         csv += `Lucky Color,${basicInfo.luckyColor || ''}\n`;
         csv += `Lucky Direction,${basicInfo.luckyDirection || ''}\n`;
 
@@ -532,6 +534,10 @@ export default function CalculatorPage() {
                             <div>
                                 <p className="text-sm text-default-500">Zodiac Sign</p>
                                 <p className="text-lg font-medium">{basicInfo.zodiacSign || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-default-500">Favourable Zodiac Sign</p>
+                                <p className="text-lg font-medium">{basicInfo.favourableZodiacSign || '-'}</p>
                             </div>
                         </div>
                     </CardBody>

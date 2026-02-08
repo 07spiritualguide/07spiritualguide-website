@@ -8,6 +8,7 @@ import { getStudentSession, setStudentSession, getSessionToken } from '@/lib/aut
 import { calculateNumerology } from '@/lib/numerology';
 import { getNumerologyDataForRoot } from '@/lib/numerologyData';
 import { extractNameParts, calculateNameNumber } from '@/lib/name-numerology';
+import { calculateBirthZodiac } from '@/lib/calculator-utils';
 import StudentNavbar from '@/components/StudentNavbar';
 
 export default function DetailsPage() {
@@ -82,7 +83,8 @@ export default function DetailsPage() {
                 supportive_numbers: numerology.supportiveNumbers.map(String),
                 destiny_number: numerology.destinyNumber,
                 lord: rootData?.lord || null,
-                zodiac_sign: rootData?.zodiac_sign || null,
+                zodiac_sign: calculateBirthZodiac(dob), // Birth zodiac based on date
+                favourable_zodiac_sign: rootData?.zodiac_sign || null, // Favorable zodiac from numerology
                 positive_traits: rootData?.positive_traits || null,
                 negative_traits: rootData?.negative_traits || null,
                 lucky_dates: rootData?.lucky_dates || null,

@@ -39,7 +39,8 @@ interface BasicInfo {
     supportive_numbers: string[] | null;
     destiny_number: number | null;
     lucky_number: number | null;
-    zodiac_sign: string | null;
+    zodiac_sign: string | null; // Birth zodiac sign
+    favourable_zodiac_sign: string | null; // Favorable zodiac from numerology
     lucky_color: string | null;
     lucky_direction: string | null;
     positive_traits: string[] | null;
@@ -1180,6 +1181,10 @@ export default function MePage() {
                                         <div>
                                             <p className="text-sm text-default-500">Zodiac Sign</p>
                                             <p className="text-lg">{basicInfo?.zodiac_sign ?? <span className="text-default-400">Coming soon</span>}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-default-500">Favourable Zodiac Sign</p>
+                                            <p className="text-lg">{basicInfo?.favourable_zodiac_sign ?? <span className="text-default-400">Coming soon</span>}</p>
                                         </div>
                                         <div className="col-span-2">
                                             <p className="text-sm text-default-500 mb-3">Lucky Colors</p>
